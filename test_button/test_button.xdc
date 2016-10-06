@@ -1,0 +1,17 @@
+set_property PACKAGE_PIN AK17           [get_ports CLK_P]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports CLK_P]
+set_property ODT RTT_48                 [get_ports CLK_P]
+create_clock -period 3.333              [get_ports CLK_P]
+
+set_property PACKAGE_PIN AK16           [get_ports CLK_N]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports CLK_N]
+set_property ODT RTT_48                 [get_ports CLK_N]
+
+set_property PACKAGE_PIN P23     [get_ports LED_W]
+set_property IOSTANDARD LVCMOS18 [get_ports LED_W]
+set_property PACKAGE_PIN R23     [get_ports LED_E]
+set_property IOSTANDARD LVCMOS18 [get_ports LED_E]
+set_property PACKAGE_PIN AF9     [get_ports SW_W]
+set_property IOSTANDARD LVCMOS18 [get_ports SW_W]
+set_property PACKAGE_PIN AE8     [get_ports SW_E]
+set_property IOSTANDARD LVCMOS18 [get_ports SW_E]
