@@ -5,7 +5,7 @@ module receiver #(
 	input logic CLK,
 	input logic in,
 	output logic[7:0] out,
-	output logic received
+	output logic valid
 );
 	logic[COUNT_WIDTH-1:0] count_half_period = 0;
 	logic receiving = 1'b0;
@@ -13,9 +13,9 @@ module receiver #(
 
 	always_comb begin
 		if (receiving && state == 4'b1111 && count_half_period == 0) begin
-			received <= 1;
+			valid <= 1;
 		end else begin
-			received <= 0;
+			valid <= 0;
 		end
 	end
 

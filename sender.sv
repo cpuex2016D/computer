@@ -4,13 +4,16 @@ module sender #(
 ) (
 	input logic CLK,
 	input logic[7:0] in,
-	input logic start_send,
-	output logic out
+	input logic valid,
+	output logic out,
+	output logic ready
 );
 	logic[7:0] buffer;
 	logic[COUNT_WIDTH-1:0] count_period = 0;
 	logic sending = 1'b0;
 	logic[2:0] state = 3'b001;  /* 100->sending->101 */
+
+	assign ready = !(sending || state[2]);
 
 	always_comb begin
 		if (sending) begin
@@ -21,7 +24,7 @@ module sender #(
 	end
 
 	always @(posedge CLK) begin
-		if (!(sending || state[2]) && start_send) begin
+		if (valid && ready) begin
 			state <= 3'b100;
 			buffer <= in;
 		end
@@ -44,7 +47,7 @@ module sender #(
 				end
 			end
 		end else begin
-			if (sending || state[2]) begin
+			if (!ready) begin
 				count_period <= count_period + 1;
 			end
 		end
