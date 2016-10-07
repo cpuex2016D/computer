@@ -11,3 +11,8 @@ set_property PACKAGE_PIN G25     [get_ports UART_RX]
 set_property IOSTANDARD LVCMOS18 [get_ports UART_RX]
 set_property PACKAGE_PIN K26     [get_ports UART_TX]
 set_property IOSTANDARD LVCMOS18 [get_ports UART_TX]
+
+
+
+set_property CFGBVS VCCO [current_design]
+set_property CONFIG_VOLTAGE 3.3 [current_design]
