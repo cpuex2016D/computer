@@ -26,7 +26,7 @@ module top #(
 
 	logic[31:0] inst_mem[2**INST_MEM_WIDTH-1:0];
 	//logic[2**DATA_MEM_WIDTH-1:0][31:0] data_mem;
-	logic[31:0][31:0] r;
+	logic[31:0][31:0] gpr;
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
 	logic[31:0] inst;
@@ -49,8 +49,8 @@ module top #(
 
 		if (mode==EXEC) begin
 			case (inst[31:26])
-				OP_ADDI: r[inst[20:16]] <= r[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
-				OP_IN  : if (receiver_valid) r[inst[20:16]][7:0] <= receiver_data;
+				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
+				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
 			endcase
 		end
 
@@ -76,5 +76,5 @@ module top #(
 	logic sender_ready;
 
 	receiver receiver_instance(CLK, UART_RX, receiver_data, receiver_valid);
-	sender sender_instance(CLK, r[inst[20:16]][7:0], mode==EXEC && inst[31:26]==OP_OUT, UART_TX, sender_ready);
+	sender sender_instance(CLK, gpr[inst[20:16]][7:0], mode==EXEC && inst[31:26]==OP_OUT, UART_TX, sender_ready);
 endmodule
