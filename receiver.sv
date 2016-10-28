@@ -1,8 +1,12 @@
 module receiver #(
 	//parameter COUNT_WIDTH = 11,
 	//parameter COUNT_MAX = 11'd1301  // 300000000/115200/2 = 1302.0833333333333
-	parameter COUNT_WIDTH = 10,
-	parameter COUNT_MAX = 10'd537  // 125000000/115200/2 = 542.5347222222222
+	//parameter COUNT_WIDTH = 10,
+	//parameter COUNT_MAX = 10'd537  // 125000000/115200/2 = 542.5347222222222
+	//parameter COUNT_WIDTH = 9,
+	//parameter COUNT_MAX = 9'd268  // 62500000/115200/2 = 271.2673611111111
+	parameter COUNT_WIDTH = 8,
+	parameter COUNT_MAX = 8'd133  // 31250000/115200/2 = 135.63368055555554
 ) (
 	input logic CLK,
 	input logic in,

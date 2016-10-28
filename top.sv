@@ -1,6 +1,6 @@
 module top #(
-	parameter INST_MEM_WIDTH = 15,  //TODO too large?
-	parameter DATA_MEM_WIDTH = 16   //TODO too large?
+	parameter INST_MEM_WIDTH = 17,
+	parameter DATA_MEM_WIDTH = 19
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
@@ -13,9 +13,12 @@ module top #(
 	output logic[5:0] LED_DEBUG
 );
 	logic CLK;
-	IBUFGDS IBUFGDS_instance(.I(CLK_P), .IB(CLK_N), .O(CLK));
+	//IBUFGDS IBUFGDS_instance(.I(CLK_P), .IB(CLK_N), .O(CLK));
+	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(CLK));
 
 	localparam OP_ADDI = 6'b001000;
+	localparam OP_LW   = 6'b100011;
+	localparam OP_SW   = 6'b101011;
 	localparam OP_IN   = 6'b011010;
 	localparam OP_OUT  = 6'b011011;
 
@@ -24,8 +27,19 @@ module top #(
 		EXEC
 	} mode = LOAD;
 
+	logic[DATA_MEM_WIDTH-1:0] data_mem_addr;
+	logic[31:0] data_mem_in;
+	logic[31:0] data_mem_out;
+	logic data_mem_we;
+	logic data_read_stall = 0;
+	data_mem data_mem(
+		.addra(data_mem_addr),
+		.clka(CLK),
+		.dina(data_mem_in),
+		.douta(data_mem_out),
+		.wea(data_mem_we)
+	);
 	logic[31:0] inst_mem[2**INST_MEM_WIDTH-1:0];
-	//logic[2**DATA_MEM_WIDTH-1:0][31:0] data_mem;
 	logic[31:0][31:0] gpr;
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
@@ -35,6 +49,9 @@ module top #(
 	assign LED_E = mode==EXEC;
 	assign LED_DEBUG = {pc[3:0], pc_sub};
 	assign inst = inst_mem[pc];
+	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
+	assign data_mem_in = gpr[inst[20:16]];
+	assign data_mem_we = mode==EXEC && inst[31:26]==OP_SW;
 
 	always @(posedge CLK) begin
 		if (SW_W) begin
@@ -50,8 +67,14 @@ module top #(
 		if (mode==EXEC) begin
 			case (inst[31:26])
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
+				OP_LW  : begin
+					if (data_read_stall) begin
+						gpr[inst[20:16]] <= data_mem_out;
+					end
+				end
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
 			endcase
+			data_read_stall <= inst[31:26]==OP_LW && !data_read_stall;
 		end
 
 		case (mode)
@@ -64,7 +87,7 @@ module top #(
 					pc <= 0;
 					pc_sub <= 0;
 				end
-				else if (!(inst[31:26]==OP_IN && !receiver_valid || inst[31:26]==OP_OUT && !sender_ready)) pc <= pc + 1;
+				else if (!(inst[31:26]==OP_IN && !receiver_valid || inst[31:26]==OP_OUT && !sender_ready || inst[31:26]==OP_LW && !data_read_stall)) pc <= pc + 1;
 			end
 		endcase
 	end

@@ -10,7 +10,7 @@
 #125MHz
 set_property PACKAGE_PIN G10 [get_ports CLK_P]
 set_property IOSTANDARD LVDS [get_ports CLK_P]
-create_clock -period 8.000   [get_ports CLK_P]
+#create_clock -period 8.000   [get_ports CLK_P]
 set_property PACKAGE_PIN F10 [get_ports CLK_N]
 set_property IOSTANDARD LVDS [get_ports CLK_N]
 
