@@ -17,6 +17,7 @@ module top #(
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(CLK));
 
 	localparam OP_ADDI = 6'b001000;
+	localparam OP_J    = 6'b000010;
 	localparam OP_LW   = 6'b100011;
 	localparam OP_SW   = 6'b101011;
 	localparam OP_IN   = 6'b011010;
@@ -87,6 +88,7 @@ module top #(
 					pc <= 0;
 					pc_sub <= 0;
 				end
+				else if (inst[31:26]==OP_J) pc <= inst[INST_MEM_WIDTH-1:0];
 				else if (!(inst[31:26]==OP_IN && !receiver_valid || inst[31:26]==OP_OUT && !sender_ready || inst[31:26]==OP_LW && !data_read_stall)) pc <= pc + 1;
 			end
 		endcase
