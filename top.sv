@@ -42,7 +42,6 @@ module top #(
 	logic[31:0] data_mem_in;
 	logic[31:0] data_mem_out;
 	logic data_mem_we;
-	logic data_read_stall = 0;
 	data_mem data_mem(
 		.addra(data_mem_addr),
 		.clka(CLK),
@@ -67,6 +66,23 @@ module top #(
 		.s_axis_operation_tdata({7'b0000000, inst[0]}),
 		.m_axis_result_tdata(fadd_fsub_out)
 	);
+	logic[31:0] fmul_out;
+	fmul fmul(
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[15:11]]),
+		.s_axis_b_tvalid(1'b1),
+		.s_axis_b_tdata(fpr[inst[20:16]]),
+		.m_axis_result_tdata(fmul_out)
+	);
+	logic[31:0] fdiv_out;
+	fdiv fdiv(
+		.aclk(CLK),
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[15:11]]),
+		.s_axis_b_tvalid(1'b1),
+		.s_axis_b_tdata(fpr[inst[20:16]]),
+		.m_axis_result_tdata(fdiv_out)
+	);
 
 	assign LED_W = mode==LOAD;
 	assign LED_E = mode==EXEC;
@@ -75,6 +91,9 @@ module top #(
 	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
 	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
 	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
+	logic latency_1;
+	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S || inst[31:26]==OP_FPU && inst[25:24]==2'b10 && inst[5:0]==6'b000011;
+	logic stage = 0;
 
 	always @(posedge CLK) begin
 		if (SW_W) begin
@@ -96,16 +115,21 @@ module top #(
 					endcase
 				OP_FPU:
 					case (inst[25:24])
-						2'b10: fpr[inst[10:6]] <= fadd_fsub_out;
+						2'b10:
+							casex (inst[5:0])
+								6'b00000x: fpr[inst[10:6]] <= fadd_fsub_out;
+								6'b000010: fpr[inst[10:6]] <= fmul_out;
+								6'b000011: if (stage) fpr[inst[10:6]] <= fdiv_out;
+							endcase
 					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
 				OP_ORI : gpr[inst[20:16]] <= gpr[inst[25:21]] | {16'b0, inst[15:0]};
 				OP_LUI : gpr[inst[20:16]] <= {inst[15:0], 16'b0};
-				OP_LW  : if (data_read_stall) gpr[inst[20:16]] <= data_mem_out;
-				OP_LW_S: if (data_read_stall) fpr[inst[20:16]] <= data_mem_out;
+				OP_LW  : if (stage) gpr[inst[20:16]] <= data_mem_out;
+				OP_LW_S: if (stage) fpr[inst[20:16]] <= data_mem_out;
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
 			endcase
-			data_read_stall <= (inst[31:26]==OP_LW || inst[31:26]==OP_LW_S) && !data_read_stall;
+			stage <= latency_1 && !stage;
 		end
 
 		case (mode)
@@ -121,7 +145,7 @@ module top #(
 				else if (inst[31:26]==OP_J) pc <= inst[INST_MEM_WIDTH-1:0];
 				else if (!(inst[31:26]==OP_IN && !receiver_valid ||
 				           inst[31:26]==OP_OUT && !sender_ready ||
-				           (inst[31:26]==OP_LW || inst[31:26]==OP_LW_S) && !data_read_stall)) pc <= pc + 1;
+				           latency_1 && !stage)) pc <= pc + 1;
 			end
 		endcase
 	end
