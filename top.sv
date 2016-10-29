@@ -1,6 +1,8 @@
 module top #(
-	parameter INST_MEM_WIDTH = 17,
-	parameter DATA_MEM_WIDTH = 19
+	//parameter INST_MEM_WIDTH = 17,
+	//parameter DATA_MEM_WIDTH = 19
+	parameter INST_MEM_WIDTH = 5,
+	parameter DATA_MEM_WIDTH = 5
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
@@ -22,6 +24,8 @@ module top #(
 	localparam OP_SW   = 6'b101011;
 	localparam OP_IN   = 6'b011010;
 	localparam OP_OUT  = 6'b011011;
+	localparam OP_LW_S = 6'b110001;
+	localparam OP_SW_S = 6'b111001;
 
 	enum logic {
 		LOAD,
@@ -42,6 +46,7 @@ module top #(
 	);
 	logic[31:0] inst_mem[2**INST_MEM_WIDTH-1:0];
 	logic[31:0][31:0] gpr;
+	logic[31:0][31:0] fpr;
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
 	logic[31:0] inst;
@@ -51,8 +56,8 @@ module top #(
 	assign LED_DEBUG = {pc[3:0], pc_sub};
 	assign inst = inst_mem[pc];
 	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
-	assign data_mem_in = gpr[inst[20:16]];
-	assign data_mem_we = mode==EXEC && inst[31:26]==OP_SW;
+	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
+	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
 
 	always @(posedge CLK) begin
 		if (SW_W) begin
@@ -68,14 +73,11 @@ module top #(
 		if (mode==EXEC) begin
 			case (inst[31:26])
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
-				OP_LW  : begin
-					if (data_read_stall) begin
-						gpr[inst[20:16]] <= data_mem_out;
-					end
-				end
+				OP_LW  : if (data_read_stall) gpr[inst[20:16]] <= data_mem_out;
+				OP_LW_S: if (data_read_stall) fpr[inst[20:16]] <= data_mem_out;
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
 			endcase
-			data_read_stall <= inst[31:26]==OP_LW && !data_read_stall;
+			data_read_stall <= (inst[31:26]==OP_LW || inst[31:26]==OP_LW_S) && !data_read_stall;
 		end
 
 		case (mode)
@@ -89,7 +91,9 @@ module top #(
 					pc_sub <= 0;
 				end
 				else if (inst[31:26]==OP_J) pc <= inst[INST_MEM_WIDTH-1:0];
-				else if (!(inst[31:26]==OP_IN && !receiver_valid || inst[31:26]==OP_OUT && !sender_ready || inst[31:26]==OP_LW && !data_read_stall)) pc <= pc + 1;
+				else if (!(inst[31:26]==OP_IN && !receiver_valid ||
+				           inst[31:26]==OP_OUT && !sender_ready ||
+				           (inst[31:26]==OP_LW || inst[31:26]==OP_LW_S) && !data_read_stall)) pc <= pc + 1;
 			end
 		endcase
 	end
