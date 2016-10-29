@@ -1,7 +1,7 @@
 module top #(
 	//parameter INST_MEM_WIDTH = 17,
 	//parameter DATA_MEM_WIDTH = 19
-	parameter INST_MEM_WIDTH = 5,
+	parameter INST_MEM_WIDTH = 6,
 	parameter DATA_MEM_WIDTH = 5
 ) (
 	input logic CLK_P,
@@ -18,14 +18,20 @@ module top #(
 	//IBUFGDS IBUFGDS_instance(.I(CLK_P), .IB(CLK_N), .O(CLK));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(CLK));
 
-	localparam OP_ADDI = 6'b001000;
-	localparam OP_J    = 6'b000010;
-	localparam OP_LW   = 6'b100011;
-	localparam OP_SW   = 6'b101011;
-	localparam OP_IN   = 6'b011010;
-	localparam OP_OUT  = 6'b011011;
-	localparam OP_LW_S = 6'b110001;
-	localparam OP_SW_S = 6'b111001;
+	localparam OP_SPECIAL = 6'b000000;
+	localparam OP_FPU     = 6'b010001;
+	localparam OP_ADDI    = 6'b001000;
+	localparam OP_ORI     = 6'b001101;
+	localparam OP_J       = 6'b000010;
+	localparam OP_LUI     = 6'b001111;
+	localparam OP_LW      = 6'b100011;
+	localparam OP_SW      = 6'b101011;
+	localparam OP_IN      = 6'b011010;
+	localparam OP_OUT     = 6'b011011;
+	localparam OP_LW_S    = 6'b110001;
+	localparam OP_SW_S    = 6'b111001;
+	localparam FUNCT_SLL = 6'b000000;
+	localparam FUNCT_SRL = 6'b000010;
 
 	enum logic {
 		LOAD,
@@ -51,6 +57,17 @@ module top #(
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
 	logic[31:0] inst;
 
+	logic[31:0] fadd_fsub_out;
+	fadd_fsub fadd_fsub(
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[15:11]]),
+		.s_axis_b_tvalid(1'b1),
+		.s_axis_b_tdata(fpr[inst[20:16]]),
+		.s_axis_operation_tvalid(1'b1),
+		.s_axis_operation_tdata({7'b0000000, inst[0]}),
+		.m_axis_result_tdata(fadd_fsub_out)
+	);
+
 	assign LED_W = mode==LOAD;
 	assign LED_E = mode==EXEC;
 	assign LED_DEBUG = {pc[3:0], pc_sub};
@@ -72,7 +89,18 @@ module top #(
 
 		if (mode==EXEC) begin
 			case (inst[31:26])
+				OP_SPECIAL:
+					case (inst[5:0])
+						FUNCT_SLL: gpr[inst[15:11]] <= gpr[inst[20:16]] << inst[10:6];
+						FUNCT_SRL: gpr[inst[15:11]] <= gpr[inst[20:16]] >> inst[10:6];
+					endcase
+				OP_FPU:
+					case (inst[25:24])
+						2'b10: fpr[inst[10:6]] <= fadd_fsub_out;
+					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
+				OP_ORI : gpr[inst[20:16]] <= gpr[inst[25:21]] | {16'b0, inst[15:0]};
+				OP_LUI : gpr[inst[20:16]] <= {inst[15:0], 16'b0};
 				OP_LW  : if (data_read_stall) gpr[inst[20:16]] <= data_mem_out;
 				OP_LW_S: if (data_read_stall) fpr[inst[20:16]] <= data_mem_out;
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
