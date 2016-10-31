@@ -53,6 +53,8 @@ module top #(
 	localparam FPU_FUNCT_SUB = 6'b000001;
 	localparam FPU_FUNCT_MUL = 6'b000010;
 	localparam FPU_FUNCT_DIV = 6'b000011;
+	localparam FPU_FUNCT_MOV = 6'b000110;
+	localparam FPU_FUNCT_NEG = 6'b000111;
 
 	enum logic {
 		LOAD,
@@ -151,6 +153,8 @@ module top #(
 								FPU_FUNCT_SUB: fpr[inst[10:6]] <= fadd_fsub_out;
 								FPU_FUNCT_MUL: fpr[inst[10:6]] <= fmul_out;
 								FPU_FUNCT_DIV: if (stage) fpr[inst[10:6]] <= fdiv_out;
+								FPU_FUNCT_MOV: fpr[inst[10:6]] <= fpr[inst[20:16]];
+								FPU_FUNCT_NEG: fpr[inst[10:6]] <= fpr[inst[20:16]] ^ 32'h80000000;
 							endcase
 					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
