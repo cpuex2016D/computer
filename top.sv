@@ -1,8 +1,6 @@
 module top #(
-	//parameter INST_MEM_WIDTH = 17,
-	//parameter DATA_MEM_WIDTH = 19
-	parameter INST_MEM_WIDTH = 6,
-	parameter DATA_MEM_WIDTH = 5
+	parameter INST_MEM_WIDTH = 17,
+	parameter DATA_MEM_WIDTH = 19
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
@@ -141,8 +139,10 @@ module top #(
 	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
 	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
 	logic latency_1;
-	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S || inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
-	logic stage = 0;
+	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S;
+	logic latency_2;
+	assign latency_2 = inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
+	logic[1:0] stage = 0;
 
 	always @(posedge CLK) begin
 		if (SW_W) begin
@@ -176,7 +176,7 @@ module top #(
 								FPU_FUNCT_ADD : fpr[inst[10:6]] <= fadd_fsub_out;
 								FPU_FUNCT_SUB : fpr[inst[10:6]] <= fadd_fsub_out;
 								FPU_FUNCT_MUL : fpr[inst[10:6]] <= fmul_out;
-								FPU_FUNCT_DIV : if (stage) fpr[inst[10:6]] <= fdiv_out;
+								FPU_FUNCT_DIV : if (stage[1]) fpr[inst[10:6]] <= fdiv_out;
 								FPU_FUNCT_MOV : fpr[inst[10:6]] <= fpr[inst[20:16]];
 								FPU_FUNCT_NEG : fpr[inst[10:6]] <= fpr[inst[20:16]] ^ 32'h80000000;
 								FPU_FUNCT_C_EQ: fcc[inst[10:8]] <= fcmp_out;
@@ -190,11 +190,13 @@ module top #(
 				OP_SLTI: gpr[inst[20:16]] <= $signed(gpr[inst[25:21]]) < $signed(inst[15:0]);
 				OP_JAL : gpr[31] <= pc_plus_1;
 				OP_LUI : gpr[inst[20:16]] <= {inst[15:0], 16'b0};
-				OP_LW  : if (stage) gpr[inst[20:16]] <= data_mem_out;
-				OP_LW_S: if (stage) fpr[inst[20:16]] <= data_mem_out;
+				OP_LW  : if (stage[0]) gpr[inst[20:16]] <= data_mem_out;
+				OP_LW_S: if (stage[0]) fpr[inst[20:16]] <= data_mem_out;
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
 			endcase
-			stage <= latency_1 && !stage;
+			stage <= latency_2 && stage[0] ? 2 :
+			         (latency_2 || latency_1) && stage==0 ? 1 :
+			         0;
 		end
 
 		case (mode)
@@ -214,7 +216,8 @@ module top #(
 				         inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_B && fcc[inst[20:18]]==inst[16]) pc <= $signed(pc) + $signed(inst[15:0]);
 				else if (!(inst[31:26]==OP_IN && !receiver_valid ||
 				           inst[31:26]==OP_OUT && !sender_ready ||
-				           latency_1 && !stage)) pc <= pc + 1;
+				           latency_2 && !stage[1] ||
+				           latency_1 && !stage[0])) pc <= pc + 1;
 			end
 		endcase
 	end
