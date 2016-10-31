@@ -21,8 +21,13 @@ module top #(
 	localparam OP_SPECIAL = 6'b000000;
 	localparam OP_FPU     = 6'b010001;
 	localparam OP_ADDI    = 6'b001000;
+	localparam OP_ANDI    = 6'b001100;
 	localparam OP_ORI     = 6'b001101;
+	localparam OP_SLTI    = 6'b001010;
+	localparam OP_BEQ     = 6'b000100;
+	localparam OP_BNE     = 6'b000101;
 	localparam OP_J       = 6'b000010;
+	localparam OP_JAL     = 6'b000011;
 	localparam OP_LUI     = 6'b001111;
 	localparam OP_LW      = 6'b100011;
 	localparam OP_SW      = 6'b101011;
@@ -30,8 +35,17 @@ module top #(
 	localparam OP_OUT     = 6'b011011;
 	localparam OP_LW_S    = 6'b110001;
 	localparam OP_SW_S    = 6'b111001;
-	localparam FUNCT_SLL = 6'b000000;
-	localparam FUNCT_SRL = 6'b000010;
+
+	localparam FUNCT_ADD  = 6'b100000;
+	localparam FUNCT_SUB  = 6'b100010;
+	localparam FUNCT_AND  = 6'b100100;
+	localparam FUNCT_OR   = 6'b100101;
+	localparam FUNCT_NOR  = 6'b100111;
+	localparam FUNCT_SLL  = 6'b000000;
+	localparam FUNCT_SRL  = 6'b000010;
+	localparam FUNCT_SLT  = 6'b101010;
+	localparam FUNCT_JR   = 6'b001000;
+	localparam FUNCT_JALR = 6'b001001;
 
 	enum logic {
 		LOAD,
@@ -53,6 +67,8 @@ module top #(
 	logic[31:0][31:0] gpr;
 	logic[31:0][31:0] fpr;
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
+	logic[INST_MEM_WIDTH-1:0] pc_plus_1;
+	assign pc_plus_1 = pc + 1;
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
 	logic[31:0] inst;
 
@@ -110,8 +126,15 @@ module top #(
 			case (inst[31:26])
 				OP_SPECIAL:
 					case (inst[5:0])
-						FUNCT_SLL: gpr[inst[15:11]] <= gpr[inst[20:16]] << inst[10:6];
-						FUNCT_SRL: gpr[inst[15:11]] <= gpr[inst[20:16]] >> inst[10:6];
+						FUNCT_ADD : gpr[inst[15:11]] <= gpr[inst[25:21]] + gpr[inst[20:16]];
+						FUNCT_SUB : gpr[inst[15:11]] <= gpr[inst[25:21]] - gpr[inst[20:16]];
+						FUNCT_AND : gpr[inst[15:11]] <= gpr[inst[25:21]] & gpr[inst[20:16]];
+						FUNCT_OR  : gpr[inst[15:11]] <= gpr[inst[25:21]] | gpr[inst[20:16]];
+						FUNCT_NOR : gpr[inst[15:11]] <= ~(gpr[inst[25:21]] | gpr[inst[20:16]]);
+						FUNCT_SLL : gpr[inst[15:11]] <= gpr[inst[20:16]] << inst[10:6];
+						FUNCT_SRL : gpr[inst[15:11]] <= gpr[inst[20:16]] >> inst[10:6];
+						FUNCT_SLT : gpr[inst[15:11]] <= $signed(gpr[inst[25:21]]) < $signed(gpr[inst[20:16]]);
+						FUNCT_JALR: gpr[31] <= pc_plus_1;
 					endcase
 				OP_FPU:
 					case (inst[25:24])
@@ -123,7 +146,10 @@ module top #(
 							endcase
 					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
+				OP_ANDI: gpr[inst[20:16]] <= gpr[inst[25:21]] & {16'b0, inst[15:0]};
 				OP_ORI : gpr[inst[20:16]] <= gpr[inst[25:21]] | {16'b0, inst[15:0]};
+				OP_SLTI: gpr[inst[20:16]] <= $signed(gpr[inst[25:21]]) < $signed(inst[15:0]);
+				OP_JAL : gpr[31] <= pc_plus_1;
 				OP_LUI : gpr[inst[20:16]] <= {inst[15:0], 16'b0};
 				OP_LW  : if (stage) gpr[inst[20:16]] <= data_mem_out;
 				OP_LW_S: if (stage) fpr[inst[20:16]] <= data_mem_out;
@@ -142,7 +168,10 @@ module top #(
 					pc <= 0;
 					pc_sub <= 0;
 				end
-				else if (inst[31:26]==OP_J) pc <= inst[INST_MEM_WIDTH-1:0];
+				else if (inst[31:26]==OP_J || inst[31:26]==OP_JAL) pc <= inst[INST_MEM_WIDTH-1:0];
+				else if (inst[31:26]==OP_SPECIAL && (inst[5:0]==FUNCT_JR || inst[5:0]==FUNCT_JALR)) pc <= gpr[inst[25:21]];
+				else if (inst[31:26]==OP_BEQ && gpr[inst[25:21]]==gpr[inst[20:16]] ||
+				         inst[31:26]==OP_BNE && gpr[inst[25:21]]!=gpr[inst[20:16]]) pc <= $signed(pc) + $signed(inst[15:0]);
 				else if (!(inst[31:26]==OP_IN && !receiver_valid ||
 				           inst[31:26]==OP_OUT && !sender_ready ||
 				           latency_1 && !stage)) pc <= pc + 1;
