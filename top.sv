@@ -48,13 +48,17 @@ module top #(
 	localparam FUNCT_JALR = 6'b001001;
 
 	localparam FPU_OP_SPECIAL = 2'b10;
+	localparam FPU_OP_B       = 2'b01;
 
-	localparam FPU_FUNCT_ADD = 6'b000000;
-	localparam FPU_FUNCT_SUB = 6'b000001;
-	localparam FPU_FUNCT_MUL = 6'b000010;
-	localparam FPU_FUNCT_DIV = 6'b000011;
-	localparam FPU_FUNCT_MOV = 6'b000110;
-	localparam FPU_FUNCT_NEG = 6'b000111;
+	localparam FPU_FUNCT_ADD  = 6'b000000;
+	localparam FPU_FUNCT_SUB  = 6'b000001;
+	localparam FPU_FUNCT_MUL  = 6'b000010;
+	localparam FPU_FUNCT_DIV  = 6'b000011;
+	localparam FPU_FUNCT_MOV  = 6'b000110;
+	localparam FPU_FUNCT_NEG  = 6'b000111;
+	localparam FPU_FUNCT_C_EQ = 6'b110010;
+	localparam FPU_FUNCT_C_LT = 6'b111100;
+	localparam FPU_FUNCT_C_LE = 6'b111110;
 
 	enum logic {
 		LOAD,
@@ -75,6 +79,7 @@ module top #(
 	logic[31:0] inst_mem[2**INST_MEM_WIDTH-1:0];
 	logic[31:0][31:0] gpr;
 	logic[31:0][31:0] fpr;
+	logic[7:0] fcc;  // floating point condition codes
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
 	logic[INST_MEM_WIDTH-1:0] pc_plus_1;
 	assign pc_plus_1 = pc + 1;
@@ -107,6 +112,25 @@ module top #(
 		.s_axis_b_tvalid(1'b1),
 		.s_axis_b_tdata(fpr[inst[20:16]]),
 		.m_axis_result_tdata(fdiv_out)
+	);
+	logic fcmp_out;
+	logic[5:0] fcmp_operation;
+	always_comb begin
+		case (inst[5:0])
+			FPU_FUNCT_C_EQ: fcmp_operation = 6'b010100;
+			FPU_FUNCT_C_LT: fcmp_operation = 6'b001100;
+			FPU_FUNCT_C_LE: fcmp_operation = 6'b011100;
+			default       : fcmp_operation = 6'bxxxxxx;
+		endcase
+	end
+	fcmp fcmp(
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[15:11]]),
+		.s_axis_b_tvalid(1'b1),
+		.s_axis_b_tdata(fpr[inst[20:16]]),
+		.s_axis_operation_tvalid(1'b1),
+		.s_axis_operation_tdata(fcmp_operation),
+		.m_axis_result_tdata(fcmp_out)
 	);
 
 	assign LED_W = mode==LOAD;
@@ -149,12 +173,15 @@ module top #(
 					case (inst[25:24])
 						FPU_OP_SPECIAL:
 							case (inst[5:0])
-								FPU_FUNCT_ADD: fpr[inst[10:6]] <= fadd_fsub_out;
-								FPU_FUNCT_SUB: fpr[inst[10:6]] <= fadd_fsub_out;
-								FPU_FUNCT_MUL: fpr[inst[10:6]] <= fmul_out;
-								FPU_FUNCT_DIV: if (stage) fpr[inst[10:6]] <= fdiv_out;
-								FPU_FUNCT_MOV: fpr[inst[10:6]] <= fpr[inst[20:16]];
-								FPU_FUNCT_NEG: fpr[inst[10:6]] <= fpr[inst[20:16]] ^ 32'h80000000;
+								FPU_FUNCT_ADD : fpr[inst[10:6]] <= fadd_fsub_out;
+								FPU_FUNCT_SUB : fpr[inst[10:6]] <= fadd_fsub_out;
+								FPU_FUNCT_MUL : fpr[inst[10:6]] <= fmul_out;
+								FPU_FUNCT_DIV : if (stage) fpr[inst[10:6]] <= fdiv_out;
+								FPU_FUNCT_MOV : fpr[inst[10:6]] <= fpr[inst[20:16]];
+								FPU_FUNCT_NEG : fpr[inst[10:6]] <= fpr[inst[20:16]] ^ 32'h80000000;
+								FPU_FUNCT_C_EQ: fcc[inst[10:8]] <= fcmp_out;
+								FPU_FUNCT_C_LT: fcc[inst[10:8]] <= fcmp_out;
+								FPU_FUNCT_C_LE: fcc[inst[10:8]] <= fcmp_out;
 							endcase
 					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
@@ -183,7 +210,8 @@ module top #(
 				else if (inst[31:26]==OP_J || inst[31:26]==OP_JAL) pc <= inst[INST_MEM_WIDTH-1:0];
 				else if (inst[31:26]==OP_SPECIAL && (inst[5:0]==FUNCT_JR || inst[5:0]==FUNCT_JALR)) pc <= gpr[inst[25:21]];
 				else if (inst[31:26]==OP_BEQ && gpr[inst[25:21]]==gpr[inst[20:16]] ||
-				         inst[31:26]==OP_BNE && gpr[inst[25:21]]!=gpr[inst[20:16]]) pc <= $signed(pc) + $signed(inst[15:0]);
+				         inst[31:26]==OP_BNE && gpr[inst[25:21]]!=gpr[inst[20:16]] ||
+				         inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_B && fcc[inst[20:18]]==inst[16]) pc <= $signed(pc) + $signed(inst[15:0]);
 				else if (!(inst[31:26]==OP_IN && !receiver_valid ||
 				           inst[31:26]==OP_OUT && !sender_ready ||
 				           latency_1 && !stage)) pc <= pc + 1;
