@@ -47,6 +47,13 @@ module top #(
 	localparam FUNCT_JR   = 6'b001000;
 	localparam FUNCT_JALR = 6'b001001;
 
+	localparam FPU_OP_SPECIAL = 2'b10;
+
+	localparam FPU_FUNCT_ADD = 6'b000000;
+	localparam FPU_FUNCT_SUB = 6'b000001;
+	localparam FPU_FUNCT_MUL = 6'b000010;
+	localparam FPU_FUNCT_DIV = 6'b000011;
+
 	enum logic {
 		LOAD,
 		EXEC
@@ -108,7 +115,7 @@ module top #(
 	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
 	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
 	logic latency_1;
-	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S || inst[31:26]==OP_FPU && inst[25:24]==2'b10 && inst[5:0]==6'b000011;
+	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S || inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
 	logic stage = 0;
 
 	always @(posedge CLK) begin
@@ -138,11 +145,12 @@ module top #(
 					endcase
 				OP_FPU:
 					case (inst[25:24])
-						2'b10:
-							casex (inst[5:0])
-								6'b00000x: fpr[inst[10:6]] <= fadd_fsub_out;
-								6'b000010: fpr[inst[10:6]] <= fmul_out;
-								6'b000011: if (stage) fpr[inst[10:6]] <= fdiv_out;
+						FPU_OP_SPECIAL:
+							case (inst[5:0])
+								FPU_FUNCT_ADD: fpr[inst[10:6]] <= fadd_fsub_out;
+								FPU_FUNCT_SUB: fpr[inst[10:6]] <= fadd_fsub_out;
+								FPU_FUNCT_MUL: fpr[inst[10:6]] <= fmul_out;
+								FPU_FUNCT_DIV: if (stage) fpr[inst[10:6]] <= fdiv_out;
 							endcase
 					endcase
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
