@@ -13,6 +13,7 @@ module receiver #(
 	output logic[7:0] out,
 	output logic valid
 );
+	logic buffer = 1;
 	logic[COUNT_WIDTH-1:0] count_half_period = 0;
 	logic receiving = 1'b0;
 	logic[3:0] state = 4'b0000;  /* 0001->0010->receiving->0100->1000 */
@@ -26,7 +27,9 @@ module receiver #(
 	end
 
 	always @(posedge CLK) begin
-		if (!{receiving, state} && !in) begin
+		buffer <= in;
+
+		if (!{receiving, state} && !buffer) begin
 			state <= 4'b0001;
 		end
 
@@ -39,7 +42,7 @@ module receiver #(
 				end else begin
 					state <= state + 1;
 					if (!state[0]) begin
-						out[state[3:1]] <= in;
+						out[state[3:1]] <= buffer;
 					end
 				end
 			end else begin
