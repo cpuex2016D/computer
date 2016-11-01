@@ -36,6 +36,8 @@ module top #(
 	localparam OP_OUT     = 6'b011011;
 	localparam OP_LW_S    = 6'b110001;
 	localparam OP_SW_S    = 6'b111001;
+	localparam OP_FTOI    = 6'b111000;
+	localparam OP_ITOF    = 6'b110000;
 
 	localparam FUNCT_ADD  = 6'b100000;
 	localparam FUNCT_SUB  = 6'b100010;
@@ -57,6 +59,8 @@ module top #(
 	localparam FPU_FUNCT_DIV  = 6'b000011;
 	localparam FPU_FUNCT_MOV  = 6'b000110;
 	localparam FPU_FUNCT_NEG  = 6'b000111;
+	localparam FPU_FUNCT_ABS  = 6'b000101;
+	localparam FPU_FUNCT_SQRT = 6'b000100;
 	localparam FPU_FUNCT_C_EQ = 6'b110010;
 	localparam FPU_FUNCT_C_LT = 6'b111100;
 	localparam FPU_FUNCT_C_LE = 6'b111110;
@@ -92,7 +96,7 @@ module top #(
 	logic latency_1;
 	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S;
 	logic latency_3;
-	assign latency_3 = inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
+	assign latency_3 = inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && (inst[5:0]==FPU_FUNCT_DIV || inst[5:0]==FPU_FUNCT_SQRT);
 	logic[1:0] stage = 0;
 
 	logic[31:0] fadd_fsub_out;
@@ -122,6 +126,13 @@ module top #(
 		.s_axis_b_tdata(fpr[inst[20:16]]),
 		.m_axis_result_tdata(fdiv_out)
 	);
+	logic[31:0] fsqrt_out;
+	fsqrt fsqrt(
+		.aclk(CLK),
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[20:16]]),
+		.m_axis_result_tdata(fsqrt_out)
+	);
 	logic fcmp_out;
 	logic[5:0] fcmp_operation;
 	always_comb begin
@@ -140,6 +151,18 @@ module top #(
 		.s_axis_operation_tvalid(1'b1),
 		.s_axis_operation_tdata(fcmp_operation),
 		.m_axis_result_tdata(fcmp_out)
+	);
+	logic[31:0] ftoi_out;
+	ftoi ftoi(
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(fpr[inst[25:21]]),
+		.m_axis_result_tdata(ftoi_out)
+	);
+	logic[31:0] itof_out;
+	itof itof(
+		.s_axis_a_tvalid(1'b1),
+		.s_axis_a_tdata(gpr[inst[25:21]]),
+		.m_axis_result_tdata(itof_out)
 	);
 
 
@@ -179,6 +202,8 @@ module top #(
 								FPU_FUNCT_DIV : if (stage==3) fpr[inst[10:6]] <= fdiv_out;
 								FPU_FUNCT_MOV : fpr[inst[10:6]] <= fpr[inst[20:16]];
 								FPU_FUNCT_NEG : fpr[inst[10:6]] <= fpr[inst[20:16]] ^ 32'h80000000;
+								FPU_FUNCT_ABS : fpr[inst[10:6]] <= fpr[inst[20:16]] & 32'h7fffffff;
+								FPU_FUNCT_SQRT: if (stage==3) fpr[inst[10:6]] <= fsqrt_out;
 								FPU_FUNCT_C_EQ: fcc[inst[10:8]] <= fcmp_out;
 								FPU_FUNCT_C_LT: fcc[inst[10:8]] <= fcmp_out;
 								FPU_FUNCT_C_LE: fcc[inst[10:8]] <= fcmp_out;
@@ -193,6 +218,8 @@ module top #(
 				OP_LW  : if (stage[0]) gpr[inst[20:16]] <= data_mem_out;
 				OP_LW_S: if (stage[0]) fpr[inst[20:16]] <= data_mem_out;
 				OP_IN  : if (receiver_valid) gpr[inst[20:16]][7:0] <= receiver_data;
+				OP_FTOI: gpr[inst[20:16]] <= ftoi_out;
+				OP_ITOF: fpr[inst[20:16]] <= itof_out;
 			endcase
 			stage <= latency_3 ? stage + 1 :
 			         latency_1 ? stage ^ 2'b01 :
