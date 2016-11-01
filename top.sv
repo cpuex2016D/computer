@@ -15,6 +15,9 @@ module top #(
 	logic CLK;
 	//IBUFGDS IBUFGDS_instance(.I(CLK_P), .IB(CLK_N), .O(CLK));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(CLK));
+	assign LED_W = mode==LOAD;
+	assign LED_E = mode==EXEC;
+	assign LED_DEBUG = {pc[3:0], pc_sub};
 
 	localparam OP_SPECIAL = 6'b000000;
 	localparam OP_FPU     = 6'b010001;
@@ -62,11 +65,13 @@ module top #(
 		LOAD,
 		EXEC
 	} mode = LOAD;
-
 	logic[DATA_MEM_WIDTH-1:0] data_mem_addr;
 	logic[31:0] data_mem_in;
 	logic[31:0] data_mem_out;
 	logic data_mem_we;
+	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
+	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
+	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
 	data_mem data_mem(
 		.addra(data_mem_addr),
 		.clka(CLK),
@@ -83,6 +88,12 @@ module top #(
 	assign pc_plus_1 = pc + 1;
 	logic[1:0] pc_sub = 0;  // mode==LOAD の時しか使わない
 	logic[31:0] inst;
+	assign inst = inst_mem[pc];
+	logic latency_1;
+	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S;
+	logic latency_3;
+	assign latency_3 = inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
+	logic[1:0] stage = 0;
 
 	logic[31:0] fadd_fsub_out;
 	fadd_fsub fadd_fsub(
@@ -131,18 +142,7 @@ module top #(
 		.m_axis_result_tdata(fcmp_out)
 	);
 
-	assign LED_W = mode==LOAD;
-	assign LED_E = mode==EXEC;
-	assign LED_DEBUG = {pc[3:0], pc_sub};
-	assign inst = inst_mem[pc];
-	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
-	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
-	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
-	logic latency_1;
-	assign latency_1 = inst[31:26]==OP_LW || inst[31:26]==OP_LW_S;
-	logic latency_3;
-	assign latency_3 = inst[31:26]==OP_FPU && inst[25:24]==FPU_OP_SPECIAL && inst[5:0]==FPU_FUNCT_DIV;
-	logic[1:0] stage = 0;
+
 
 	always @(posedge CLK) begin
 		if (SW_W) begin
