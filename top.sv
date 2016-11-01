@@ -69,7 +69,7 @@ module top #(
 	logic[31:0] data_mem_in;
 	logic[31:0] data_mem_out;
 	logic data_mem_we;
-	assign data_mem_addr = gpr[inst[25:21]] + inst[15:0];  //TODO 幅が合っていない
+	assign data_mem_addr = $signed(gpr[inst[25:21]]) + $signed(inst[15:0]);
 	assign data_mem_in = inst[30] ? fpr[inst[20:16]] : gpr[inst[20:16]];
 	assign data_mem_we = mode==EXEC && (inst[31:26]==OP_SW || inst[31:26]==OP_SW_S);
 	data_mem data_mem(
