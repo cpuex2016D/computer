@@ -84,7 +84,7 @@ module top #(
 		.wea(data_mem_we)
 	);
 	logic[31:0] inst_mem[2**INST_MEM_WIDTH-1:0];
-	logic[31:0][31:0] gpr = {{31{{32{1'bx}}}}, 32'b0};
+	logic[31:0][31:0] gpr = {{31{32'bx}}, 32'b0};
 	logic[31:0][31:0] fpr;
 	logic[7:0] fcc;  // floating point condition codes
 	logic[INST_MEM_WIDTH-1:0] pc = 0;
