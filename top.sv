@@ -189,7 +189,7 @@ module top #(
 						FUNCT_NOR : gpr[inst[15:11]] <= ~(gpr[inst[25:21]] | gpr[inst[20:16]]);
 						FUNCT_SLL : gpr[inst[15:11]] <= gpr[inst[20:16]] << inst[10:6];
 						FUNCT_SRL : gpr[inst[15:11]] <= gpr[inst[20:16]] >> inst[10:6];
-						FUNCT_SLT : gpr[inst[15:11]] <= $signed(gpr[inst[25:21]]) < $signed(gpr[inst[20:16]]);
+						FUNCT_SLT : gpr[inst[15:11]] <= $signed(gpr[inst[25:21]]) <= $signed(gpr[inst[20:16]]);
 						FUNCT_JALR: gpr[31] <= pc_plus_1;
 					endcase
 				OP_FPU:
@@ -212,7 +212,7 @@ module top #(
 				OP_ADDI: gpr[inst[20:16]] <= gpr[inst[25:21]] + {{16{inst[15]}}, inst[15:0]};
 				OP_ANDI: gpr[inst[20:16]] <= gpr[inst[25:21]] & {16'b0, inst[15:0]};
 				OP_ORI : gpr[inst[20:16]] <= gpr[inst[25:21]] | {16'b0, inst[15:0]};
-				OP_SLTI: gpr[inst[20:16]] <= $signed(gpr[inst[25:21]]) < $signed(inst[15:0]);
+				OP_SLTI: gpr[inst[20:16]] <= $signed(gpr[inst[25:21]]) <= $signed(inst[15:0]);
 				OP_JAL : gpr[31] <= pc_plus_1;
 				OP_LUI : gpr[inst[20:16]] <= {inst[15:0], 16'b0};
 				OP_LW  : if (stage[0]) gpr[inst[20:16]] <= data_mem_out;
