@@ -14,7 +14,7 @@ module top #(
 	//IBUFGDS IBUFGDS_instance(.I(CLK_P), .IB(CLK_N), .O(CLK));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(CLK));
 	assign LED[7] = mode==EXEC;
-	assign LED[5:0] = {pc[3:0], pc_sub};
+	assign LED[6:0] = {pc[4:0], pc_sub};
 
 	localparam OP_SPECIAL = 6'b000000;
 	localparam OP_FPU     = 6'b010001;
@@ -244,11 +244,6 @@ module top #(
 				           latency_1 && !stage[0])) pc <= pc + 1;
 			end
 		endcase
-
-		if (mode==EXEC) begin
-			if (SW_W) LED[6] <= 0;
-			else if (receiver_valid && inst[31:26]!=OP_IN) LED[6] <= 1;
-		end
 	end
 
 
@@ -257,6 +252,6 @@ module top #(
 	logic receiver_valid;
 	logic sender_ready;
 
-	receiver receiver_instance(CLK, UART_RX, receiver_data, receiver_valid);
-	sender sender_instance(CLK, gpr[inst[20:16]][7:0], mode==EXEC && inst[31:26]==OP_OUT, UART_TX, sender_ready);
+	receiver_wrapper receiver_wrapper(CLK, UART_RX, mode==LOAD || inst[31:26]==OP_IN, receiver_data, receiver_valid);
+	sender sender(CLK, gpr[inst[20:16]][7:0], mode==EXEC && inst[31:26]==OP_OUT, UART_TX, sender_ready);
 endmodule
