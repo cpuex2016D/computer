@@ -10,7 +10,7 @@ module receiver_wrapper #(
 	logic[7:0] receiver_out;
 	logic receiver_valid;
 	receiver receiver(CLK, in, receiver_out, receiver_valid);
-	logic[7:0] buffer[2**WIDTH-1:0];
+	(* ram_style = "distributed" *) logic[7:0] buffer[2**WIDTH-1:0];
 	logic[WIDTH-1:0] in_pointer = 0;
 	logic[WIDTH-1:0] out_pointer = 0;
 
