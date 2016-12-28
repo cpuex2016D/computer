@@ -70,7 +70,7 @@ module add_sub #(
 	assign i.req.valid = entry[0].valid&&entry[0].opd[0].valid&&entry[0].opd[1].valid ||
 	                     entry[1].valid&&entry[1].opd[0].valid&&entry[1].opd[1].valid;
 	wire dispatchable = i.req.valid && i.req.ready;
-	assign i.feedback.stall = !dispatchable && entry[N_ENTRY-1].valid;
+	assign i.feedback.stall = entry_new.valid && !dispatchable && entry[N_ENTRY-1].valid;
 
 	always_ff @(posedge clk) begin
 		if (dispatchable) begin
