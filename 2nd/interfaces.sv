@@ -1,5 +1,16 @@
 `include "common.vh"
 
+interface cdb_if #(
+	parameter DATA_WIDTH = 32
+);
+	logic valid;
+	logic[ROB_WIDTH-1:0] tag;
+	logic[DATA_WIDTH-1:0] data;
+	function logic tag_match(logic[ROB_WIDTH-1:0] _tag);
+		return valid && tag==_tag;
+	endfunction
+endinterface
+
 interface inst_if;
 	logic[INST_WIDTH-1:0] bits;
 	wire[5:0] op = bits[31:26];
