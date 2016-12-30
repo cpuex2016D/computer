@@ -16,21 +16,16 @@ module register_file #(
 	assign read[0] = registers[inst.r1];
 	assign read[1] = registers[inst.r2];
 
-	always_ff @(posedge clk) begin
-		if (issue) begin
-			registers[inst.r0].valid <= 0;
-			registers[inst.r0].tag <= issue_tag;
-		end
-	end
 	for (genvar i=0; i<2**REG_WIDTH; i++) begin
 		always_ff @(posedge clk) begin
-			if (commit) begin
-				if (!registers[i].valid && registers[i].tag==commit_tag) begin
-					if (!(issue && i==inst.r0)) begin
-						registers[i].valid <= 1;
-					end
-					registers[i].data <= commit_data;
-				end
+			if (issue && i==inst.r0) begin
+				registers[i].valid <= 0;
+				registers[i].tag <= issue_tag;
+			end else if (commit && /* !registers[i].valid && */ registers[i].tag==commit_tag) begin
+				registers[i].valid <= 1;
+			end
+			if (commit && !registers[i].valid && registers[i].tag==commit_tag) begin
+				registers[i].data <= commit_data;
 			end
 		end
 	end
