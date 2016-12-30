@@ -1,12 +1,18 @@
 `include "common.vh"
 
 module top #(
-	parameter RECEIVER_PERIOD = 1292,
-	// 300000000/115200/2 = 1302.0833333333333
-	// 1302 - 10 = 1292
-	parameter SENDER_PERIOD = 2584
-	// 300000000/115200 = 2604.1666666666665
-	// 2604 - 20 = 2584
+	parameter RECEIVER_PERIOD = 861,
+	//300MHz
+	//  300000000/115200/2 = 1302.0833333333333
+	//  1302 - 10 = 1292
+	//200MHz
+	//  1292/1.5 = 861.3333333333334
+	parameter SENDER_PERIOD = 1722
+	//300MHz
+	//  300000000/115200 = 2604.1666666666665
+	//  2604 - 20 = 2584
+	//200MHz
+	//  2584/1.5 = 1722.6666666666667
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
@@ -31,7 +37,8 @@ module top #(
 
 	//clk
 	logic clk;
-	IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
+	//IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
+	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
 	//LED
 	assign LED[7] = mode==EXEC;
