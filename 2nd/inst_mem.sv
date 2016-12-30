@@ -11,6 +11,8 @@ module inst_mem #(
 	inst_if inst
 );
 	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0];
+	wire[INST_WIDTH-1:0] inst_j  = inst_mem[inst.c_j];
+	wire[INST_WIDTH-1:0] inst_pc = inst_mem[pc];
 
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin
@@ -29,9 +31,9 @@ module inst_mem #(
 
 		if (!stall) begin
 			if (inst.is_j) begin
-				inst.bits <= inst_mem[inst.c_j];
+				inst.bits <= inst_j;
 			end else begin
-				inst.bits <= inst_mem[pc];
+				inst.bits <= inst_pc;
 			end
 		end
 	end
