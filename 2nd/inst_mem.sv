@@ -7,7 +7,7 @@ module inst_mem #(
 	input logic we,
 	input logic reset_pc,
 	input logic stall,
-	output logic[INST_MEM_WIDTH-1:0] pc,
+	output logic[INST_MEM_WIDTH-1:0] pc = 0,
 	inst_if inst
 );
 	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0];

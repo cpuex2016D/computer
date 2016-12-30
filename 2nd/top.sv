@@ -83,7 +83,7 @@ module top #(
 	);
 
 	//inst_mem
-	logic[INST_MEM_WIDTH-1:0] pc = 0;
+	logic[INST_MEM_WIDTH-1:0] pc;
 	inst_if inst();
 	wire inst_mem_stall = (mode==LOAD && !receiver_valid) ||
 	                      (exec &&
