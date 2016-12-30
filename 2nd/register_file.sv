@@ -21,13 +21,15 @@ module register_file #(
 			registers[inst.r0].valid <= 0;
 			registers[inst.r0].tag <= issue_tag;
 		end
-		if (commit) begin
-			foreach (registers[j]) begin
-				if (!registers[j].valid && registers[j].tag==commit_tag) begin
-					if (!(issue && j==inst.r0)) begin
-						registers[j].valid <= 1;
+	end
+	for (genvar i=0; i<2**REG_WIDTH; i++) begin
+		always_ff @(posedge clk) begin
+			if (commit) begin
+				if (!registers[i].valid && registers[i].tag==commit_tag) begin
+					if (!(issue && i==inst.r0)) begin
+						registers[i].valid <= 1;
 					end
-					registers[j].data <= commit_data;
+					registers[i].data <= commit_data;
 				end
 			end
 		end
