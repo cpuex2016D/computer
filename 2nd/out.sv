@@ -35,13 +35,15 @@ module out #(
 	end
 
 	assign commit_req.ready = sender_ready;
-	assert property (@(posedge clk) commit_req.valid |-> entry[0].valid);
 	wire commit = commit_req.valid && commit_req.ready;
-	assign sender_valid = commit;
+	assign sender_valid = commit_req.valid;
 	assign sender_in = entry[0].data[7:0];
 	assign issue_req.ready = commit || count < N_ENTRY;
 
 	always_ff @(posedge clk) begin
+		if (commit_req.valid && !entry[0].valid) begin
+			$display("hoge: out: error!!!!!!!!!!");
+		end
 		count <= count - commit + (issue_req.valid && issue_req.ready);
 		if (commit) begin
 			entry[0] <= count>=2 ? entry_updated[1] : entry_new;
