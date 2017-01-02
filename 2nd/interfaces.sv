@@ -6,12 +6,18 @@ interface inst_if;
 	wire[4:0] r0 = bits[25:21];
 	wire[4:0] r1 = bits[20:16];
 	wire[4:0] r2 = bits[15:11];
-	wire[15:0] c = bits[15:0];
-	wire[13:0] c_j = {bits[23:21], bits[10:0]};
+	wire[15:0] c_add_sub = bits[15:0];
+	wire[15:0] c_lw      = bits[15:0];
+	wire[17:0] c_lwi     = bits[17:0];
+	wire[15:0] c_sw      = {bits[25:21], bits[10:0]};
+	wire[17:0] c_swi     = {bits[17:16], bits[25:21], bits[10:0]};
+	wire[13:0] c_j       = {bits[23:21], bits[10:0]};
+	wire[8:0] c_cmp      = {bits[27:24], bits[15:11]};
 	wire is_add_sub = op[5:3]==3'b000 && op[2:1]!=2'b11;
+	wire is_lw_sw   = op[5:3]==3'b010;
 	wire is_in      = op==6'b011010;
 	wire is_out     = op==6'b011100;
-	wire is_j       = op==6'b100000;
+	wire is_j       = op==6'b100000;  //TODO
 endinterface
 
 interface req_if;
