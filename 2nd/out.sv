@@ -15,7 +15,8 @@ module out #(
 	req_if commit_req,
 	input logic sender_ready,
 	output logic sender_valid,
-	output logic[7:0] sender_in
+	output logic[7:0] sender_in,
+	input logic reset
 );
 	localparam N_ENTRY = 4;
 	logic[$clog2(N_ENTRY):0] count = 0;
@@ -44,7 +45,7 @@ module out #(
 		if (commit_req.valid && !entry[0].valid) begin
 			$display("hoge: out: error!!!!!!!!!!");
 		end
-		count <= count - commit + (issue_req.valid && issue_req.ready);
+		count <= reset ? 0 : count - commit + (issue_req.valid && issue_req.ready);
 		if (commit) begin
 			entry[0] <= count>=2 ? entry_updated[1] : entry_new;
 			entry[1] <= count>=3 ? entry_updated[2] : entry_new;

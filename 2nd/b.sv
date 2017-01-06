@@ -26,9 +26,12 @@ module b #(
 	req_if issue_req,
 	req_if commit_req,
 	input logic prediction,
-	input logic[PATTERN_WIDTH-1:0] pattern,
-	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
-	output logic failure
+	input logic[PATTERN_WIDTH-1:0] pattern_in,
+	input logic[INST_MEM_WIDTH-1:0] addr_on_failure_in,
+	output logic failure,
+	output logic[PATTERN_WIDTH-1:0] pattern_out,
+	output logic[INST_MEM_WIDTH-1:0] addr_on_failure_out,
+	input logic reset
 );
 	localparam N_ENTRY = 4;
 	logic[$clog2(N_ENTRY):0] cmp_count = 0;
@@ -77,7 +80,7 @@ module b #(
 	                  cmp_entry[0].cmp_type==CMP_FZ  ? cmp_entry[0].opd[0].data[30:23]==0 : 1'bx;
 
 	always_ff @(posedge clk) begin
-		cmp_count <= cmp_count - dispatch + issue;
+		cmp_count <= reset ? 0 : cmp_count - dispatch + issue;
 		if (dispatch) begin
 			cmp_entry[0] <= cmp_count>=2 ? cmp_entry_updated[1] : cmp_entry_new;
 			cmp_entry[1] <= cmp_count>=3 ? cmp_entry_updated[2] : cmp_entry_new;
@@ -99,8 +102,8 @@ module b #(
 
 	//b
 	assign b_entry_new.prediction_or_failure = prediction;
-	assign b_entry_new.pattern               = pattern;
-	assign b_entry_new.addr_on_failure       = addr_on_failure;
+	assign b_entry_new.pattern               = pattern_in;
+	assign b_entry_new.addr_on_failure       = addr_on_failure_in;
 	always_comb begin
 		if (commit) begin
 			b_entry_moved[0] <= b_count>=2 ? b_entry[1] : b_entry_new;
@@ -115,7 +118,7 @@ module b #(
 		end
 	end
 	always_ff @(posedge clk) begin
-		b_count <= b_count - commit + issue;
+		b_count <= reset ? 0 : b_count - commit + issue;
 	end
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		always_ff @(posedge clk) begin
@@ -125,5 +128,7 @@ module b #(
 		end
 	end
 
-	assign failure = b_entry[0].prediction_or_failure;  //commitまで使われないという仮定で書いている(commit前はinvalidかもしれない)
+	assign failure             = b_entry[0].prediction_or_failure;  //commitまで使われないという仮定で書いている(commit前はinvalidかもしれない)
+	assign pattern_out         = b_entry[0].pattern;
+	assign addr_on_failure_out = b_entry[0].addr_on_failure;
 endmodule

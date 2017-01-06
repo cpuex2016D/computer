@@ -39,7 +39,8 @@ module lw_sw #(
 	req_if gpr_cdb_req,
 	req_if fpr_cdb_req,
 	req_if commit_req,
-	cdb_t result
+	cdb_t result,
+	input logic reset
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -99,12 +100,17 @@ module lw_sw #(
 	                                                                            {DATA_MEM_WIDTH{1'bx}});
 
 	always_ff @(posedge clk) begin
-		if (agu_dispatch) begin
-			agu_entry[0] <= agu_dispatched==0 ? agu_entry[1].valid ? agu_entry_updated[1] : agu_entry_new : agu_entry_updated[0];
-			agu_entry[1] <= agu_entry[1].valid ? agu_entry_new : agu_entry_invalid;
+		if (reset) begin
+			agu_entry[0] <= agu_entry_invalid;
+			agu_entry[1] <= agu_entry_invalid;
 		end else begin
-			agu_entry[0] <= agu_entry[0].valid ? agu_entry_updated[0] : agu_entry_new;
-			agu_entry[1] <= agu_entry[1].valid ? agu_entry_updated[1] : agu_entry[0].valid ? agu_entry_new : agu_entry_invalid;
+			if (agu_dispatch) begin
+				agu_entry[0] <= agu_dispatched==0 ? agu_entry[1].valid ? agu_entry_updated[1] : agu_entry_new : agu_entry_updated[0];
+				agu_entry[1] <= agu_entry[1].valid ? agu_entry_new : agu_entry_invalid;
+			end else begin
+				agu_entry[0] <= agu_entry[0].valid ? agu_entry_updated[0] : agu_entry_new;
+				agu_entry[1] <= agu_entry[1].valid ? agu_entry_updated[1] : agu_entry[0].valid ? agu_entry_new : agu_entry_invalid;
+			end
 		end
 	end
 
@@ -138,7 +144,7 @@ module lw_sw #(
 	                   fpr_cdb_req.valid && fpr_cdb_req.ready;
 
 	always_ff @(posedge clk) begin
-		lw_count <= lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
+		lw_count <= reset ? 0 : lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
 		if (lw_dispatch) begin
 			lw_entry[0] <= lw_count>=2 ? lw_entry_updated[0] : lw_entry_new;
 			lw_entry[1] <= lw_entry_new;
@@ -192,7 +198,7 @@ module lw_sw #(
 		if (commit_req.valid && (!sw_entry_updated[j].addr_valid || !sw_entry[j].sw_data.valid)) begin
 			$display("hoge: sw: error!!!!!!!!!!");
 		end
-		sw_count <= sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
+		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
 		if (sw_commit) begin
 			sw_entry[0] <= sw_count>=2 ? sw_entry_updated[0] : sw_entry_new;
 			sw_entry[1] <= sw_count>=3 ? sw_entry_updated[1] : sw_entry_new;

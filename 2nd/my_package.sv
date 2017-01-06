@@ -32,6 +32,7 @@ package my_package;
 		 COMMIT_SW,
 		 COMMIT_OUT,
 		 COMMIT_B,
+		 COMMIT_RESET = 3'bx0x,
 		 COMMIT_X = 3'bx
 	} commit_ring_entry;
 endpackage

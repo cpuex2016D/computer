@@ -18,7 +18,8 @@ module add_sub #(
 	logic[ROB_WIDTH-1:0] issue_tag,
 	req_if issue_req,
 	req_if cdb_req,
-	cdb_t result
+	cdb_t result,
+	input logic reset
 );
 	localparam N_ENTRY = 2;
 	localparam add_sub_entry entry_invalid = '{
@@ -78,12 +79,17 @@ module add_sub #(
 	assign issue_req.ready = dispatch || !entry[N_ENTRY-1].valid;
 
 	always_ff @(posedge clk) begin
-		if (dispatch) begin
-			entry[0] <= dispatched==0 ? entry[1].valid ? entry_updated[1] : entry_new : entry_updated[0];
-			entry[1] <= entry[1].valid ? entry_new : entry_invalid;
+		if (reset) begin
+			entry[0] <= entry_invalid;
+			entry[1] <= entry_invalid;
 		end else begin
-			entry[0] <= entry[0].valid ? entry_updated[0] : entry_new;
-			entry[1] <= entry[1].valid ? entry_updated[1] : entry[0].valid ? entry_new : entry_invalid;
+			if (dispatch) begin
+				entry[0] <= dispatched==0 ? entry[1].valid ? entry_updated[1] : entry_new : entry_updated[0];
+				entry[1] <= entry[1].valid ? entry_new : entry_invalid;
+			end else begin
+				entry[0] <= entry[0].valid ? entry_updated[0] : entry_new;
+				entry[1] <= entry[1].valid ? entry_updated[1] : entry[0].valid ? entry_new : entry_invalid;
+			end
 		end
 		result.tag <= entry[dispatched].tag;
 		case (entry[dispatched].add_or_sub)
