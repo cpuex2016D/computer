@@ -1,12 +1,13 @@
 `include "common.vh"
 
+typedef enum logic {
+	CMP_FZ,
+	CMP_FLE,
+	CMP_E,
+	CMP_LE
+} cmp_type_t;
 typedef struct {
-	enum logic {
-		CMP_FZ,
-		CMP_FLE,
-		CMP_E,
-		CMP_LE
-	} cmp_type;
+	cmp_type_t cmp_type;
 	cdb_t opd[1:0];
 } cmp_entry;
 typedef struct {

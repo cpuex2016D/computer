@@ -1,8 +1,10 @@
 `include "common.vh"
 
+typedef enum logic {LW, SW, X_LW_SW=1'bx} lw_or_sw_t;
+typedef enum logic {GPR, FPR} gpr_or_fpr_t;
 typedef struct {
 	logic valid;
-	enum logic {LW, SW, X_LW_SW=1'bx} lw_or_sw;
+	lw_or_sw_t lw_or_sw;
 	logic[1:0] pointer;
 	struct {
 		logic valid;
@@ -11,7 +13,7 @@ typedef struct {
 	} opd;
 } agu_entry;
 typedef struct {
-	enum logic {LW_GPR, LW_FPR} gpr_or_fpr;
+	gpr_or_fpr_t gpr_or_fpr;
 	logic[ROB_WIDTH-1:0] tag;
 	logic addr_valid;  //なくせる?
 	logic[DATA_MEM_WIDTH-1:0] addr;
@@ -20,7 +22,7 @@ typedef struct {
 typedef struct {
 	logic addr_valid;  //なくせる?
 	logic[DATA_MEM_WIDTH-1:0] addr;
-	enum logic {SW_GPR, SW_FPR} gpr_or_fpr;
+	gpr_or_fpr_t gpr_or_fpr;
 	cdb_t sw_data;
 } sw_entry;
 
@@ -116,7 +118,7 @@ module lw_sw #(
 	end
 
 	//lw
-	assign lw_entry_new.gpr_or_fpr = inst.op[1] ? LW_FPR : LW_GPR;
+	assign lw_entry_new.gpr_or_fpr = inst.op[1] ? FPR : GPR;
 	assign lw_entry_new.tag        = inst.op[1] ? fpr_issue_tag : gpr_issue_tag;
 	assign lw_entry_new.addr_valid = inst.op[0];
 	assign lw_entry_new.addr       = inst.op[0] ? inst.c_lwi : DATA_MEM_WIDTH'($signed(inst.c_lw));
@@ -139,8 +141,8 @@ module lw_sw #(
 	                           sw_entry[2].addr_valid&&sw_entry[2].sw_data.valid &&
 	                            (lw_entry[0].pointer[1:0]==3 ||
 	                             sw_entry[3].addr_valid&&sw_entry[3].sw_data.valid)));
-	assign gpr_cdb_req.valid = lw_entry0_valid && disambiguatable && lw_entry[0].gpr_or_fpr==LW_GPR;
-	assign fpr_cdb_req.valid = lw_entry0_valid && disambiguatable && lw_entry[0].gpr_or_fpr==LW_FPR;
+	assign gpr_cdb_req.valid = lw_entry0_valid && disambiguatable && lw_entry[0].gpr_or_fpr==GPR;
+	assign fpr_cdb_req.valid = lw_entry0_valid && disambiguatable && lw_entry[0].gpr_or_fpr==FPR;
 	wire lw_dispatch = gpr_cdb_req.valid && gpr_cdb_req.ready ||
 	                   fpr_cdb_req.valid && fpr_cdb_req.ready;
 
@@ -163,22 +165,22 @@ module lw_sw #(
 	//sw
 	assign sw_entry_new.addr_valid    = inst.op[0];
 	assign sw_entry_new.addr          = inst.op[0] ? inst.c_swi : DATA_MEM_WIDTH'($signed(inst.c_sw));
-	assign sw_entry_new.gpr_or_fpr    = inst.op[1] ? SW_FPR : SW_GPR;
-	assign sw_entry_new.sw_data.valid = sw_entry_new.gpr_or_fpr==SW_GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? 1'bx : 1
-	                                                                                        : tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ?    1 : 0 :
-	                                    sw_entry_new.gpr_or_fpr==SW_FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? 1'bx : 1
-	                                                                                        : tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ?    1 : 0 : 1'bx;
-	assign sw_entry_new.sw_data.tag   = sw_entry_new.gpr_or_fpr==SW_GPR ? gpr_read[1].tag :
-	                                    sw_entry_new.gpr_or_fpr==SW_FPR ? fpr_read[1].tag : {ROB_WIDTH{1'bx}};
-	assign sw_entry_new.sw_data.data  = sw_entry_new.gpr_or_fpr==SW_GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? 32'bx        : gpr_read[1].data
-	                                                                                        : tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? gpr_cdb.data : 32'bx            :
-	                                    sw_entry_new.gpr_or_fpr==SW_FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? 32'bx        : fpr_read[1].data
-	                                                                                        : tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? fpr_cdb.data : 32'bx            : 32'bx;
+	assign sw_entry_new.gpr_or_fpr    = inst.op[1] ? FPR : GPR;
+	assign sw_entry_new.sw_data.valid = sw_entry_new.gpr_or_fpr==GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? 1'bx : 1
+	                                                                                     : tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ?    1 : 0 :
+	                                    sw_entry_new.gpr_or_fpr==FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? 1'bx : 1
+	                                                                                     : tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ?    1 : 0 : 1'bx;
+	assign sw_entry_new.sw_data.tag   = sw_entry_new.gpr_or_fpr==GPR ? gpr_read[1].tag :
+	                                    sw_entry_new.gpr_or_fpr==FPR ? fpr_read[1].tag : {ROB_WIDTH{1'bx}};
+	assign sw_entry_new.sw_data.data  = sw_entry_new.gpr_or_fpr==GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? 32'bx        : gpr_read[1].data
+	                                                                                     : tag_match(gpr_cdb, sw_entry_new.sw_data.tag) ? gpr_cdb.data : 32'bx            :
+	                                    sw_entry_new.gpr_or_fpr==FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? 32'bx        : fpr_read[1].data
+	                                                                                     : tag_match(fpr_cdb, sw_entry_new.sw_data.tag) ? fpr_cdb.data : 32'bx            : 32'bx;
 	for (genvar j=0; j<N_SW_ENTRY; j++) begin
 		wire agu_dispatch_to_me = agu_dispatch&&agu_entry[agu_dispatched].lw_or_sw==SW&&agu_entry[agu_dispatched].pointer==j;
 		cdb_t cdb;
-		assign cdb = sw_entry[j].gpr_or_fpr==SW_GPR ? gpr_cdb :
-		             sw_entry[j].gpr_or_fpr==SW_FPR ? fpr_cdb :
+		assign cdb = sw_entry[j].gpr_or_fpr==GPR ? gpr_cdb :
+		             sw_entry[j].gpr_or_fpr==FPR ? fpr_cdb :
 		             '{
 		               valid: 1'bx,
 		               tag: {ROB_WIDTH{1'bx}},
@@ -196,7 +198,7 @@ module lw_sw #(
 	wire sw_commit = commit_req.valid && commit_req.ready;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && (!sw_entry_updated[j].addr_valid || !sw_entry[j].sw_data.valid)) begin
+		if (commit_req.valid && (!sw_entry_updated[0].addr_valid || !sw_entry[0].sw_data.valid)) begin
 			$display("hoge: sw: error!!!!!!!!!!");
 		end
 		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);

@@ -1,9 +1,10 @@
 `include "common.vh"
 
+typedef enum logic {ADD, SUB, X_ADD_SUB=1'bx} add_or_sub_t;
 typedef struct {
 	logic valid;
 	logic[ROB_WIDTH-1:0] tag;
-	enum logic {ADD, SUB, X_ADD_SUB=1'bx} add_or_sub;
+	add_or_sub_t add_or_sub;
 	logic sl2;
 	cdb_t opd[1:0];
 } add_sub_entry;
@@ -28,11 +29,18 @@ module add_sub #(
 		tag: {ROB_WIDTH{1'bx}},
 		add_or_sub: X_ADD_SUB,
 		sl2: 1'bx,
-		opd: '{default: '{
-			valid: 1'bx,
-			tag: {ROB_WIDTH{1'bx}},
-			data: 32'bx
-		}}
+		opd: '{
+			0: '{
+				valid: 1'bx,
+				tag: {ROB_WIDTH{1'bx}},
+				data: 32'bx
+			},
+			1: '{
+				valid: 1'bx,
+				tag: {ROB_WIDTH{1'bx}},
+				data: 32'bx
+			}
+		}
 	};
 	//add_sub_entry entry[N_ENTRY-1:0] = '{default: entry_invalid};  //この方法だと正しく初期化されない(vivadoのバグ?)
 	add_sub_entry entry[N_ENTRY-1:0];  //0から順に詰める

@@ -175,12 +175,14 @@ module top #(
 	cdb_t result_add_sub;
 	cdb_t result_lw;
 	cdb_t result_in;
+	//gpr_cdb
+	typedef enum logic {
+		GPR_CDB_ADD_SUB,
+		GPR_CDB_LW
+	} gpr_unit_t;
 	struct {
 		logic valid;
-		enum logic {
-			GPR_CDB_ADD_SUB,
-			GPR_CDB_LW
-		} unit;
+		gpr_unit_t unit;
 	} gpr_cdb_rsv;
 	always_ff @(posedge clk) begin
 		gpr_cdb_rsv.valid <= gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
@@ -191,6 +193,7 @@ module top #(
 	assign gpr_cdb.valid = gpr_cdb_rsv.valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
 	assign gpr_cdb.tag   = gpr_cdb_rsv.valid ? gpr_cdb_rsv.unit==GPR_CDB_LW ? result_lw.tag  : result_add_sub.tag  : result_in.tag;
 	assign gpr_cdb.data  = gpr_cdb_rsv.valid ? gpr_cdb_rsv.unit==GPR_CDB_LW ? result_lw.data : result_add_sub.data : result_in.data;
+	//fpr_cdb
 	struct {
 		logic valid;
 	} fpr_cdb_rsv;
