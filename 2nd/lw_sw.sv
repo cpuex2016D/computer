@@ -193,11 +193,11 @@ module lw_sw #(
 		assign sw_e_updated[j].sw_data.data  = sw_e[j].sw_data.valid ? sw_e[j].sw_data.data : cdb.data;
 	end
 
-	assign commit_req.ready = 1;
+	assign commit_req.ready = sw_e[0].addr_valid;
 	wire sw_commit = commit_req.valid && commit_req.ready;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && (!sw_e_updated[0].addr_valid || !sw_e[0].sw_data.valid)) begin
+		if (commit_req.valid && !sw_e[0].sw_data.valid) begin
 			$display("hoge: sw: error!!!!!!!!!!");
 		end
 		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
@@ -220,7 +220,7 @@ module lw_sw #(
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
 	logic[31:0] data_mem_out;
 	data_mem data_mem(
-		.addra(sw_e_updated[0].addr),
+		.addra(sw_e[0].addr),
 		.addrb(lw_e_next[0].addr),
 		.clka(clk),
 		.clkb(clk),
