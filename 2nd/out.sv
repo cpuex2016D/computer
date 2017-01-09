@@ -10,7 +10,7 @@ module out #(
 ) (
 	input logic clk,
 	input cdb_t gpr_read[1:0],
-	input cdb_t cdb,
+	input cdb_t gpr_cdb,
 	req_if issue_req,
 	req_if commit_req,
 	input logic sender_ready,
@@ -24,15 +24,15 @@ module out #(
 	out_entry entry_updated[N_ENTRY-1:0];
 	out_entry entry_new;
 
-	assign entry_new.valid = gpr_read[0].valid ? tag_match(cdb, entry_new.tag) ? 1'bx : 1
-	                                           : tag_match(cdb, entry_new.tag) ?    1 : 0;
+	assign entry_new.valid = gpr_read[0].valid ? tag_match(gpr_cdb, entry_new.tag) ? 1'bx : 1
+	                                           : tag_match(gpr_cdb, entry_new.tag) ?    1 : 0;
 	assign entry_new.tag   = gpr_read[0].tag;
-	assign entry_new.data  = gpr_read[0].valid ? tag_match(cdb, entry_new.tag) ? 8'bx          : gpr_read[0].data[7:0]
-	                                           : tag_match(cdb, entry_new.tag) ? cdb.data[7:0] : 8'bx;
+	assign entry_new.data  = gpr_read[0].valid ? tag_match(gpr_cdb, entry_new.tag) ? 8'bx              : gpr_read[0].data[7:0]
+	                                           : tag_match(gpr_cdb, entry_new.tag) ? gpr_cdb.data[7:0] : 8'bx;
 	for (genvar j=0; j<N_ENTRY; j++) begin
-		assign entry_updated[j].valid = entry[j].valid || tag_match(cdb, entry[j].tag);
+		assign entry_updated[j].valid = entry[j].valid || tag_match(gpr_cdb, entry[j].tag);
 		assign entry_updated[j].tag   = entry[j].tag;
-		assign entry_updated[j].data  = entry[j].valid ? entry[j].data : cdb.data[7:0];
+		assign entry_updated[j].data  = entry[j].valid ? entry[j].data : gpr_cdb.data[7:0];
 	end
 
 	assign commit_req.ready = sender_ready;

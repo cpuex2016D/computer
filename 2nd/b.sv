@@ -73,7 +73,11 @@ module b #(
 	wire dispatch = cmp_count!=0 && cmp_entry[0].opd[0].valid && (cmp_entry[0].cmp_type==CMP_FZ || cmp_entry[0].opd[1].valid);
 	wire[$clog2(N_ENTRY)-1:0] dispatch_to = b_count - cmp_count;
 	logic fcmple_out;
-	//TODO fcmple_core
+	fcmple_core fcmple_core(
+		.s_axis_a_tdata(cmp_entry[0].opd[0].data),
+		.s_axis_b_tdata(cmp_entry[0].opd[1].data),
+		.m_axis_result_tdata(fcmple_out)
+	);
 	wire cmp_result = cmp_entry[0].cmp_type==CMP_E   ? cmp_entry[0].opd[0].data == cmp_entry[0].opd[1].data :
 	                  cmp_entry[0].cmp_type==CMP_LE  ? $signed(cmp_entry[0].opd[0].data) <= $signed(cmp_entry[0].opd[1].data) :
 	                  cmp_entry[0].cmp_type==CMP_FLE ? fcmple_out :

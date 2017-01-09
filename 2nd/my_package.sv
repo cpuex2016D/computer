@@ -5,8 +5,8 @@ package my_package;
 	parameter INST_MEM_WIDTH = 14;
 	parameter DATA_MEM_WIDTH = 18;
 	parameter REG_WIDTH = 5;
-	parameter ROB_WIDTH = 4;
-	parameter COMMIT_RING_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
+	parameter ROB_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
+	parameter COMMIT_RING_WIDTH = 4;  //commit_ring.in_countのみparameterizeされていない
 	parameter PATTERN_WIDTH = INST_MEM_WIDTH;
 
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
@@ -32,7 +32,7 @@ package my_package;
 		 COMMIT_SW,
 		 COMMIT_OUT,
 		 COMMIT_B,
-		 COMMIT_RESET = 3'bx0x,
+		 COMMIT_NULL,
 		 COMMIT_X = 3'bx
 	} commit_ring_entry;
 endpackage

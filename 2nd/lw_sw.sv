@@ -30,9 +30,10 @@ module lw_sw #(
 ) (
 	input logic clk,
 	inst_if inst,
-	cdb_t gpr_read[0:1],
-	cdb_t fpr_read[0:1],
-	logic[ROB_WIDTH-1:0] issue_tag,
+	cdb_t gpr_read[1:0],
+	cdb_t fpr_read[1:0],
+	logic[ROB_WIDTH-1:0] gpr_issue_tag,
+	logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	cdb_t gpr_cdb,
 	cdb_t fpr_cdb,
 	req_if issue_req,
@@ -116,7 +117,7 @@ module lw_sw #(
 
 	//lw
 	assign lw_entry_new.gpr_or_fpr = inst.op[1] ? LW_FPR : LW_GPR;
-	assign lw_entry_new.tag        = issue_tag;
+	assign lw_entry_new.tag        = inst.op[1] ? fpr_issue_tag : gpr_issue_tag;
 	assign lw_entry_new.addr_valid = inst.op[0];
 	assign lw_entry_new.addr       = inst.op[0] ? inst.c_lwi : DATA_MEM_WIDTH'($signed(inst.c_lw));
 	assign lw_entry_new.pointer    = sw_count - sw_commit;
@@ -179,7 +180,7 @@ module lw_sw #(
 		assign cdb = sw_entry[j].gpr_or_fpr==SW_GPR ? gpr_cdb :
 		             sw_entry[j].gpr_or_fpr==SW_FPR ? fpr_cdb :
 		             '{
-		               valid: 1'bx.
+		               valid: 1'bx,
 		               tag: {ROB_WIDTH{1'bx}},
 		               data: 32'bx
 		             };
@@ -188,7 +189,7 @@ module lw_sw #(
 		assign sw_entry_updated[j].gpr_or_fpr    = sw_entry[j].gpr_or_fpr;
 		assign sw_entry_updated[j].sw_data.valid = entry[j].sw_data.valid || tag_match(cdb, entry[j].sw_data.tag);
 		assign sw_entry_updated[j].sw_data.tag   = entry[j].sw_data.tag;
-		assign sw_entry_updated[j].sw_data.data  = entry[j].sw_data.valid ? entry[j].sw_data.data ? cdb.data;
+		assign sw_entry_updated[j].sw_data.data  = entry[j].sw_data.valid ? entry[j].sw_data.data : cdb.data;
 	end
 
 	assign commit_req.ready = 1;
