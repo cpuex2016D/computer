@@ -222,8 +222,9 @@ module lw_sw #(
 	data_mem data_mem(
 		.addra(sw_e_updated[0].addr),
 		.addrb(lw_e_next[0].addr),
-		.clka(clk),
-		.clkb(clk),
+		.clk,
+		//.clka(clk),
+		//.clkb(clk),
 		.dina(sw_e[0].sw_data.data),
 		.doutb(data_mem_out),
 		.wea(sw_commit)
