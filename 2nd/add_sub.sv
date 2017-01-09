@@ -15,12 +15,12 @@ module add_sub #(
 ) (
 	input logic clk,
 	inst_if inst,
-	cdb_t gpr_read[1:0],
-	cdb_t gpr_cdb,
-	logic[ROB_WIDTH-1:0] gpr_issue_tag,
+	input cdb_t gpr_read[1:0],
+	input cdb_t gpr_cdb,
+	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
 	req_if gpr_cdb_req,
-	cdb_t result,
+	output cdb_t result,
 	input logic reset
 );
 	localparam N_ENTRY = 2;

@@ -32,17 +32,17 @@ module lw_sw #(
 ) (
 	input logic clk,
 	inst_if inst,
-	cdb_t gpr_read[1:0],
-	cdb_t fpr_read[1:0],
-	logic[ROB_WIDTH-1:0] gpr_issue_tag,
-	logic[ROB_WIDTH-1:0] fpr_issue_tag,
-	cdb_t gpr_cdb,
-	cdb_t fpr_cdb,
+	input cdb_t gpr_read[1:0],
+	input cdb_t fpr_read[1:0],
+	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
+	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
+	input cdb_t gpr_cdb,
+	input cdb_t fpr_cdb,
 	req_if issue_req,
 	req_if gpr_cdb_req,
 	req_if fpr_cdb_req,
 	req_if commit_req,
-	cdb_t result,
+	output cdb_t result,
 	input logic reset
 );
 	localparam N_AGU_ENTRY = 2;
