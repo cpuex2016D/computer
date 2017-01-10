@@ -161,10 +161,10 @@ module lw_sw #(
 		lw_e[0] <= lw_e_next[0];
 		lw_e[1] <= lw_e_next[1];
 		result.tag <= lw_e[0].tag;
-		result.data <= lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr ? sw_e[0].sw_data.data :
-		               lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr ? sw_e[1].sw_data.data :
+		result.data <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr ? sw_e[3].sw_data.data :
 		               lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr ? sw_e[2].sw_data.data :
-		               lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr ? sw_e[3].sw_data.data : data_mem_out;
+		               lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr ? sw_e[1].sw_data.data :
+		               lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr ? sw_e[0].sw_data.data : data_mem_out;
 	end
 
 	//sw
