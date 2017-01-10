@@ -130,7 +130,7 @@ module b #(
 	end
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		always_ff @(posedge clk) begin
-			b_e[i].prediction_or_failure <= b_e_moved[i].prediction_or_failure ^ (dispatch && dispatch_to==i && cmp_result);
+			b_e[i].prediction_or_failure <= b_e_moved[i].prediction_or_failure ^ (dispatch && dispatch_to-commit==i && cmp_result);
 			b_e[i].pattern               <= b_e_moved[i].pattern;
 			b_e[i].addr_on_failure       <= b_e_moved[i].addr_on_failure;
 		end
