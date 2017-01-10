@@ -1,18 +1,22 @@
 `include "common.vh"
 
 module top #(
-	parameter RECEIVER_PERIOD = 861,
+	parameter RECEIVER_PERIOD = 775,
 	//300MHz
 	//  300000000/115200/2 = 1302.0833333333333
 	//  1302 - 10 = 1292
 	//200MHz
 	//  1292/1.5 = 861.3333333333334
-	parameter SENDER_PERIOD = 1722
+	//180MHz
+	//  1292*0.6 = 775.1999999999999
+	parameter SENDER_PERIOD = 1550
 	//300MHz
 	//  300000000/115200 = 2604.1666666666665
 	//  2604 - 20 = 2584
 	//200MHz
 	//  2584/1.5 = 1722.6666666666667
+	//180MHz
+	//  2584*0.6 = 1550.3999999999999
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
