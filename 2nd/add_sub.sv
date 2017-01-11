@@ -9,8 +9,6 @@ typedef struct {
 	cdb_t opd[1:0];
 } add_sub_entry;
 
-
-
 module add_sub #(
 ) (
 	input logic clk,

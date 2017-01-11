@@ -26,8 +26,6 @@ typedef struct {
 	cdb_t sw_data;
 } sw_entry;
 
-
-
 module lw_sw #(
 ) (
 	input logic clk,
