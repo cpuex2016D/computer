@@ -8,6 +8,7 @@ package my_package;
 	parameter ROB_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
 	parameter COMMIT_RING_WIDTH = 4;  //commit_ring.in_countのみparameterizeされていない
 	parameter PATTERN_WIDTH = INST_MEM_WIDTH;
+	parameter ADDR_STACK_WIDTH = 4;
 
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
 		logic valid;

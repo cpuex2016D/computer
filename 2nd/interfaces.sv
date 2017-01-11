@@ -18,6 +18,8 @@ interface inst_if;
 	wire is_in      = op==6'b011010;
 	wire is_out     = op==6'b011100;
 	wire is_j       = op[5:3]==3'b100;
+	wire is_jal     = op[5:2]==4'b1001;
+	wire is_jr      = op==6'b011101;
 	wire is_b       = op[5]==1'b1 && op[4:3]!=2'b00;
 endinterface
 

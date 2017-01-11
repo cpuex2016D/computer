@@ -98,6 +98,7 @@ module top #(
 	                         issue_req_lw_sw.valid   && !issue_req_lw_sw.ready   ||
 	                         issue_req_in.valid      && !issue_req_in.ready      ||
 	                         issue_req_out.valid     && !issue_req_out.ready     ||
+	                         issue_req_jal.valid     && !issue_req_jal.ready     ||
 	                         issue_req_b.valid       && !issue_req_b.ready));
 	inst_mem inst_mem(
 		.clk,
@@ -109,12 +110,14 @@ module top #(
 		.inst,
 		.prediction,
 		.reset,
-		.addr_on_failure(addr_on_failure_out)
+		.addr_on_failure(addr_on_failure_out),
+		.return_addr
 	);
 	wire prediction = 1;
 	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
 	logic failure;
+	logic[INST_MEM_WIDTH-1:0] return_addr;
 
 	//issue
 	req_if issue_req_commit_ring();
@@ -122,6 +125,7 @@ module top #(
 	req_if issue_req_lw_sw();
 	req_if issue_req_in();
 	req_if issue_req_out();
+	req_if issue_req_jal();
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
 	logic[ROB_WIDTH-1:0] fpr_issue_tag;
@@ -129,6 +133,7 @@ module top #(
 	assign issue_req_lw_sw.valid   = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
 	assign issue_req_in.valid      = exec && issue_req_commit_ring.ready && inst.is_in;
 	assign issue_req_out.valid     = exec && issue_req_commit_ring.ready && inst.is_out;
+	assign issue_req_jal.valid     = exec && inst.is_jal;
 	assign issue_req_b.valid       = exec && issue_req_commit_ring.ready && inst.is_b;
 	commit_ring_entry issue_type;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
@@ -336,7 +341,8 @@ module top #(
 		.fpr_read,
 		.gpr_cdb,
 		.fpr_cdb,
-		.issue_req(issue_req_b),
+		.issue_req_b,
+		.issue_req_jal,
 		.commit_req(commit_req_b),
 		.prediction,
 		//.pattern_in,
@@ -344,6 +350,8 @@ module top #(
 		.failure,
 		//.patterm_out,
 		.addr_on_failure_out,
-		.reset
+		.reset,
+		.pc,
+		.return_addr
 	);
 endmodule
