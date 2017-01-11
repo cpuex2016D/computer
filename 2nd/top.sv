@@ -112,8 +112,8 @@ module top #(
 		.addr_on_failure(addr_on_failure_out)
 	);
 	wire prediction = 1;
-	wire[INST_MEM_WIDTH] addr_on_failure_in = prediction ? pc : inst.c_j;
-	logic[INST_MEM_WIDTH] addr_on_failure_out;
+	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
+	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
 	logic failure;
 
 	//issue
