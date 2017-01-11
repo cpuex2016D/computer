@@ -15,10 +15,6 @@ module inst_mem #(
 	input logic[INST_MEM_WIDTH-1:0] return_addr
 );
 	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0];
-	wire[INST_WIDTH-1:0] inst_pc     = inst_mem[pc];
-	wire[INST_WIDTH-1:0] inst_j      = inst_mem[inst.c_j];
-	wire[INST_WIDTH-1:0] inst_return = inst_mem[return_addr];
-	wire[INST_WIDTH-1:0] inst_reset  = inst_mem[addr_on_failure];
 
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin
@@ -40,14 +36,14 @@ module inst_mem #(
 		end
 
 		if (reset) begin
-			inst.bits <= inst_reset;
+			inst.bits <= inst_mem[addr_on_failure];
 		end else if (!stall) begin
 			if (inst.is_j || inst.is_b && prediction) begin
-				inst.bits <= inst_j;
+				inst.bits <= inst_mem[inst.c_j];
 			end else if (inst.is_jr) begin
-				inst.bits <= inst_return;
+				inst.bits <= inst_mem[return_addr];
 			end else begin
-				inst.bits <= inst_pc;
+				inst.bits <= inst_mem[pc];
 			end
 		end
 	end
