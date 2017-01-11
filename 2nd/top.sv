@@ -194,7 +194,8 @@ module top #(
 		gpr_unit_t unit;
 	} gpr_cdb_rsv;
 	always_ff @(posedge clk) begin
-		gpr_cdb_rsv.valid <= gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
+		gpr_cdb_rsv.valid <= reset ? 0 :
+		                     gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
 		                     gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready;
 		gpr_cdb_rsv.unit <= gpr_cdb_req_lw.valid&&gpr_cdb_req_lw.ready ? GPR_CDB_LW : GPR_CDB_ADD_SUB;
 	end
@@ -207,7 +208,7 @@ module top #(
 		logic valid;
 	} fpr_cdb_rsv;
 	always_ff @(posedge clk) begin
-		fpr_cdb_rsv.valid <= fpr_cdb_req_lw.valid;
+		fpr_cdb_rsv.valid <= reset ? 0 : fpr_cdb_req_lw.valid;
 	end
 	cdb_t fpr_cdb;
 	assign fpr_cdb.valid = fpr_cdb_rsv.valid;
