@@ -21,8 +21,10 @@ module inst_mem #(
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin
 			pc <= 0;
+		end else if (reset) begin
+			pc <= addr_on_failure + 1;
 		end else if (!stall) begin
-			if (inst.is_j) begin
+			if (inst.is_j || inst.is_b && prediction) begin
 				pc <= inst.c_j + 1;
 			end else begin
 				pc <= pc + 1;
