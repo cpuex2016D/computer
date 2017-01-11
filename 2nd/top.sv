@@ -173,18 +173,16 @@ module top #(
 	end
 
 	//cdb
-	req_if gpr_cdb_req_add_sub();
-	req_if gpr_cdb_req_lw();
-	req_if fpr_cdb_req_lw();
-	req_if gpr_cdb_req_in();
-	assign gpr_cdb_req_lw.ready = 1;
-	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_req_lw.valid;
-	assign gpr_cdb_req_in.ready = !gpr_cdb_rsv.valid;
-	assign fpr_cdb_req_lw.ready = 1;
 	cdb_t result_add_sub;
 	cdb_t result_lw;
 	cdb_t result_in;
 	//gpr_cdb
+	req_if gpr_cdb_req_add_sub();
+	req_if gpr_cdb_req_lw();
+	req_if gpr_cdb_req_in();
+	assign gpr_cdb_req_lw.ready = 1;
+	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_req_lw.valid;
+	assign gpr_cdb_req_in.ready = !gpr_cdb_rsv.valid;
 	typedef enum logic {
 		GPR_CDB_ADD_SUB,
 		GPR_CDB_LW
@@ -204,6 +202,8 @@ module top #(
 	assign gpr_cdb.tag   = gpr_cdb_rsv.valid ? gpr_cdb_rsv.unit==GPR_CDB_LW ? result_lw.tag  : result_add_sub.tag  : result_in.tag;
 	assign gpr_cdb.data  = gpr_cdb_rsv.valid ? gpr_cdb_rsv.unit==GPR_CDB_LW ? result_lw.data : result_add_sub.data : result_in.data;
 	//fpr_cdb
+	req_if fpr_cdb_req_lw();
+	assign fpr_cdb_req_lw.ready = 1;
 	struct {
 		logic valid;
 	} fpr_cdb_rsv;
