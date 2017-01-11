@@ -46,9 +46,9 @@ module add_sub #(
 	add_sub_entry e[N_ENTRY-1:0];  //0から順に詰める
 	add_sub_entry e_updated[N_ENTRY-1:0];
 	add_sub_entry e_new;
-	for (genvar j=0; j<N_ENTRY; j++) begin
+	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin
-			e[j] <= e_invalid;
+			e[i] <= e_invalid;
 		end
 	end
 
@@ -68,17 +68,17 @@ module add_sub #(
 	assign e_new.opd[1].tag   = gpr_read[0].tag;
 	assign e_new.opd[1].data  = (gpr_read[0].valid ? tag_match(gpr_cdb, e_new.opd[1].tag) ? 32'bx        : gpr_read[0].data
 	                                               : tag_match(gpr_cdb, e_new.opd[1].tag) ? gpr_cdb.data : 32'bx) << (e_new.sl2 ? 2 : 0);
-	for (genvar j=0; j<N_ENTRY; j++) begin
-		assign e_updated[j].valid      = e[j].valid;
-		assign e_updated[j].tag        = e[j].tag;
-		assign e_updated[j].add_or_sub = e[j].add_or_sub;
-		assign e_updated[j].sl2        = e[j].sl2;
-		for (genvar k=0; k<2; k++) begin
-			assign e_updated[j].opd[k].valid = e[j].opd[k].valid || tag_match(gpr_cdb, e[j].opd[k].tag);
-			assign e_updated[j].opd[k].tag   = e[j].opd[k].tag;
+	for (genvar i=0; i<N_ENTRY; i++) begin
+		assign e_updated[i].valid      = e[i].valid;
+		assign e_updated[i].tag        = e[i].tag;
+		assign e_updated[i].add_or_sub = e[i].add_or_sub;
+		assign e_updated[i].sl2        = e[i].sl2;
+		for (genvar j=0; j<2; j++) begin
+			assign e_updated[i].opd[j].valid = e[i].opd[j].valid || tag_match(gpr_cdb, e[i].opd[j].tag);
+			assign e_updated[i].opd[j].tag   = e[i].opd[j].tag;
 		end
-		assign e_updated[j].opd[0].data = e[j].opd[0].valid ? e[j].opd[0].data : gpr_cdb.data;
-		assign e_updated[j].opd[1].data = e[j].opd[1].valid ? e[j].opd[1].data : gpr_cdb.data << (e[j].sl2 ? 2 : 0);
+		assign e_updated[i].opd[0].data = e[i].opd[0].valid ? e[i].opd[0].data : gpr_cdb.data;
+		assign e_updated[i].opd[1].data = e[i].opd[1].valid ? e[i].opd[1].data : gpr_cdb.data << (e[i].sl2 ? 2 : 0);
 	end
 
 	wire dispatched = e[0].opd[0].valid&&e[0].opd[1].valid ? 0 : 1;  //dispatchされるエントリの番号
