@@ -24,13 +24,13 @@ module top_tb;
 	localparam OP_OUT     = 6'b011100;
 	localparam OP_J       = 6'b100000;
 
-	always #(0.5) begin
-		CLK_P <= !CLK_P;
-		CLK_N <= !CLK_N;
-	end
 //	always #(0.5) begin
-//		force top.CLK = !top.CLK;
+//		CLK_P <= !CLK_P;
+//		CLK_N <= !CLK_N;
 //	end
+	always #(0.5) begin
+		force top.clk = !top.clk;
+	end
 
 	int fd;
 	int c;
