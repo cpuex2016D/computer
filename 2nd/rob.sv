@@ -22,8 +22,10 @@ module rob #(
 	end
 	assign issue_tag = issue_pointer;
 	assign commit_tag = commit_pointer;
-	assign commit_data = rob[commit_pointer].data;
-	assign commit_req.ready = rob[commit_pointer].valid;
+	rob_entry commit_e;
+	assign commit_e = rob[commit_pointer];
+	assign commit_data = commit_e.data;
+	assign commit_req.ready = commit_e.valid;
 	wire commit = commit_req.valid && commit_req.ready;
 
 	always_ff @(posedge clk) begin
