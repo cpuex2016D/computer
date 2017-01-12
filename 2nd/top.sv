@@ -240,6 +240,8 @@ module top #(
 	req_if commit_req_sw();
 	req_if commit_req_out();
 	req_if commit_req_b();
+	logic[REG_WIDTH-1:0] gpr_commit_arch_num;
+	logic[REG_WIDTH-1:0] fpr_commit_arch_num;
 	logic[ROB_WIDTH-1:0] gpr_commit_tag;
 	logic[ROB_WIDTH-1:0] fpr_commit_tag;
 	logic[31:0] gpr_commit_data;
@@ -269,6 +271,7 @@ module top #(
 		.issue(issue_gpr),
 		.issue_tag(gpr_issue_tag),
 		.commit(commit_req_gpr.valid && commit_req_gpr.ready),
+		.commit_arch_num(gpr_commit_arch_num),
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
 		.reset
@@ -280,6 +283,7 @@ module top #(
 		.issue(issue_fpr),
 		.issue_tag(fpr_issue_tag),
 		.commit(commit_req_fpr.valid && commit_req_fpr.ready),
+		.commit_arch_num(fpr_commit_arch_num),
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
 		.reset
@@ -290,8 +294,10 @@ module top #(
 		.read(gpr_rob_read),
 		.cdb(gpr_cdb),
 		.issue(issue_gpr),
+		.inst,
 		.issue_tag(gpr_issue_tag),
 		.commit_req(commit_req_gpr),
+		.commit_arch_num(gpr_commit_arch_num),
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
 		.reset
@@ -302,8 +308,10 @@ module top #(
 		.read(fpr_rob_read),
 		.cdb(fpr_cdb),
 		.issue(issue_fpr),
+		.inst,
 		.issue_tag(fpr_issue_tag),
 		.commit_req(commit_req_fpr),
+		.commit_arch_num(fpr_commit_arch_num),
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
 		.reset

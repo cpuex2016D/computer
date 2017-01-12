@@ -7,8 +7,10 @@ module rob #(
 	output rob_entry read[1:0],
 	input cdb_t cdb,
 	input logic issue,
+	inst_if inst,
 	output logic[ROB_WIDTH-1:0] issue_tag,
 	req_if commit_req,
+	output logic[REG_WIDTH-1:0] commit_arch_num,
 	output logic[ROB_WIDTH-1:0] commit_tag,
 	output logic[31:0] commit_data,
 	input logic reset
@@ -25,6 +27,7 @@ module rob #(
 	rob_entry commit_e;
 	assign commit_e = rob[commit_pointer];
 	assign commit_data = commit_e.data;
+	assign commit_arch_num = commit_e.arch_num;
 	assign commit_req.ready = commit_e.valid;
 	wire commit = commit_req.valid && commit_req.ready;
 
@@ -45,8 +48,11 @@ module rob #(
 			rob[cdb.tag].valid <= 1;
 			rob[cdb.tag].data <= cdb.data;
 		end
-		if (issue && !(cdb.valid && cdb.tag==issue_pointer)) begin
+		if (issue && !(cdb.valid && cdb.tag==issue_pointer)) begin  //in命令ではissueと同時にcdbにデータが流れる
 			rob[issue_pointer].valid <= 0;
+		end
+		if (issue) begin
+			rob[issue_pointer].arch_num <= inst.r0;
 		end
 	end
 endmodule

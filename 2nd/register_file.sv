@@ -8,6 +8,7 @@ module register_file #(
 	input logic issue,
 	input logic[ROB_WIDTH-1:0] issue_tag,
 	input logic commit,
+	input logic[ROB_WIDTH-1:0] commit_arch_num,
 	input logic[ROB_WIDTH-1:0] commit_tag,
 	input logic[31:0] commit_data,
 	input logic reset
@@ -35,7 +36,7 @@ module register_file #(
 				registers[i].tag <= issue_tag;
 			end
 
-			if (commit && !registers[i].valid && registers[i].tag==commit_tag) begin
+			if (commit && !registers[i].valid && i==commit_arch_num) begin
 				registers[i].data <= commit_data;
 			end
 		end

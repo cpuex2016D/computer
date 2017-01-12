@@ -22,6 +22,7 @@ package my_package;
 
 	typedef struct {  //packedでないと "arrays have different elements" というエラーが出る -> packageの中に入れたらエラーが出なくなった
 		logic valid;
+		logic[REG_WIDTH-1:0] arch_num;
 		logic[31:0] data;
 	} rob_entry;
 
