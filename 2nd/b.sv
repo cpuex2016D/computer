@@ -226,7 +226,7 @@ module b #(
 				                      backup_count>=2 && backup_e[1].stack_pointer==i ? backup_e[1].addr :
 				                      backup_count>=3 && backup_e[2].stack_pointer==i ? backup_e[2].addr :
 				                      backup_count>=4 && backup_e[3].stack_pointer==i ? backup_e[3].addr : addr_stack[i];
-			end else if (jal_issue && stack_pointer+1==i) begin
+			end else if (jal_issue && ADDR_STACK_WIDTH'(stack_pointer+1)==i) begin
 				addr_stack_next[i] <= pc;
 			end else begin
 				addr_stack_next[i] <= addr_stack[i];
