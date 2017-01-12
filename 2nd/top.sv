@@ -104,6 +104,11 @@ module top #(
 	                         issue_req_out.valid     && !issue_req_out.ready     ||
 	                         issue_req_jal.valid     && !issue_req_jal.ready     ||
 	                         issue_req_b.valid       && !issue_req_b.ready));
+	wire prediction = 1;
+	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
+	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
+	logic failure;
+	logic[INST_MEM_WIDTH-1:0] return_addr;
 	inst_mem inst_mem(
 		.clk,
 		.inst_in(receiver_out),
@@ -117,11 +122,6 @@ module top #(
 		.addr_on_failure(addr_on_failure_out),
 		.return_addr
 	);
-	wire prediction = 1;
-	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
-	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
-	logic failure;
-	logic[INST_MEM_WIDTH-1:0] return_addr;
 
 	//issue
 	req_if issue_req_commit_ring();
