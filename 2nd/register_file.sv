@@ -13,11 +13,12 @@ module register_file #(
 	input logic[31:0] commit_data,
 	input logic reset
 );
-	cdb_t registers[2**REG_WIDTH-1:0] = '{default: '{
+	localparam cdb_t register_init = '{
 		valid: 1,
 		tag: {ROB_WIDTH{1'bx}},
 		data: 0
-	}};
+	};
+	cdb_t registers[2**REG_WIDTH-1:0] = '{default: register_init};
 
 	assign read[0] = registers[inst.r1];
 	assign read[1] = registers[inst.r2];
