@@ -212,7 +212,8 @@ module b #(
 
 	//addr_stack
 	always_comb begin
-		stack_pointer_next <= jal_issue  ? stack_pointer+1 :
+		stack_pointer_next <= reset ? b_e[0].stack_pointer :
+		                      jal_issue  ? stack_pointer+1 :
 		                      inst.is_jr ? stack_pointer-1 : stack_pointer;
 	end
 	always_ff @(posedge clk) begin
