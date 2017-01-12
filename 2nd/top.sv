@@ -270,7 +270,8 @@ module top #(
 		.issue_tag(gpr_issue_tag),
 		.commit(commit_req_gpr.valid && commit_req_gpr.ready),
 		.commit_tag(gpr_commit_tag),
-		.commit_data(gpr_commit_data)
+		.commit_data(gpr_commit_data),
+		.reset
 	);
 	register_file fpr_arch(
 		.clk,
@@ -280,7 +281,8 @@ module top #(
 		.issue_tag(fpr_issue_tag),
 		.commit(commit_req_fpr.valid && commit_req_fpr.ready),
 		.commit_tag(fpr_commit_tag),
-		.commit_data(fpr_commit_data)
+		.commit_data(fpr_commit_data),
+		.reset
 	);
 	rob gpr_rob(
 		.clk,
