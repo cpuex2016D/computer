@@ -14,7 +14,11 @@ module inst_mem #(
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
 	input logic[INST_MEM_WIDTH-1:0] return_addr
 );
-	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0];
+	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0] = '{default: 0};
+
+	initial begin
+		inst.bits <= 0;
+	end
 
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin

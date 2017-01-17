@@ -36,7 +36,9 @@ module top_tb;
 	int c;
 
 	initial begin
-		fd = $fopen("../../../program_loopback_text", "rb");
+		top.pc <= 0;
+
+		fd = $fopen("../../../program_fib_text", "rb");
 		#10;
 		forever begin
 			c = $fgetc(fd);
@@ -57,20 +59,20 @@ module top_tb;
 		#10;
 		SW_E <= !SW_E;
 
-		fd = $fopen("../../../program_loopback_data", "rb");
-		#10;
-		forever begin
-			c = $fgetc(fd);
-			if (c==-1) break;
-			UART_RX <= 0;
-			#PERIOD;
-			for (int i=0; i<8; i++) begin
-				UART_RX <= c[i];
-				#PERIOD;
-			end
-			UART_RX <= 1;
-			#PERIOD;
-			#1;
-		end
+//		fd = $fopen("../../../program_loopback_data", "rb");
+//		#10;
+//		forever begin
+//			c = $fgetc(fd);
+//			if (c==-1) break;
+//			UART_RX <= 0;
+//			#PERIOD;
+//			for (int i=0; i<8; i++) begin
+//				UART_RX <= c[i];
+//				#PERIOD;
+//			end
+//			UART_RX <= 1;
+//			#PERIOD;
+//			#1;
+//		end
 	end
 endmodule
