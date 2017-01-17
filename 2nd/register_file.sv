@@ -8,7 +8,7 @@ module register_file #(
 	input logic issue,
 	input logic[ROB_WIDTH-1:0] issue_tag,
 	input logic commit,
-	input logic[ROB_WIDTH-1:0] commit_arch_num,
+	input logic[REG_WIDTH-1:0] commit_arch_num,
 	input logic[ROB_WIDTH-1:0] commit_tag,
 	input logic[31:0] commit_data,
 	input logic reset
