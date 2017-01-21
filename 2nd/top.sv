@@ -320,7 +320,7 @@ module top #(
 		FPR_CDB_FMUL,
 		FPR_CDB_ITOF,
 		FPR_CDB_LW,
-		FPR_CDB_FMOV
+		FPR_CDB_FMOV = 3'b11x
 	} fpr_unit_t;
 	typedef struct {
 		logic valid;
