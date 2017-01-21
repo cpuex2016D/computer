@@ -97,14 +97,31 @@ module top #(
 	inst_if inst();
 	wire inst_mem_stall = (mode==LOAD && !receiver_valid) ||
 	                      (exec &&
-	                        ((inst.is_add_sub || inst.is_mov || inst.is_lw_sw || inst.is_in || inst.is_out || inst.is_b) && !issue_req_commit_ring.ready ||
-	                         issue_req_add_sub.valid && !issue_req_add_sub.ready ||
-	                         issue_req_mov.valid     && !issue_req_mov.ready     ||
-	                         issue_req_lw_sw.valid   && !issue_req_lw_sw.ready   ||
-	                         issue_req_in.valid      && !issue_req_in.ready      ||
-	                         issue_req_out.valid     && !issue_req_out.ready     ||
-	                         issue_req_jal.valid     && !issue_req_jal.ready     ||
-	                         issue_req_b.valid       && !issue_req_b.ready));
+	                        ((inst.is_add_sub    ||
+	                          inst.is_mov        ||
+	                          inst.is_fadd_fsub  ||
+	                          inst.is_fmul       ||
+	                          inst.is_fdiv_fsqrt ||
+	                          inst.is_fmov       ||
+	                          inst.is_lw_sw      ||
+	                          inst.is_ftoi       ||
+	                          inst.is_itof       ||
+	                          inst.is_in         ||
+	                          inst.is_out        ||
+	                          inst.is_b            ) && !issue_req_commit_ring.ready ||
+	                         issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
+	                         issue_req_mov.valid        && !issue_req_mov.ready        ||
+	                         issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
+	                         issue_req_fmul.valid       && !issue_req_fmul.ready       ||
+	                         issue_req_fdiv_fsqrt.valid && !issue_req_fdiv_fsqrt.ready ||
+	                         issue_req_fmov.valid       && !issue_req_fmov.ready       ||
+	                         issue_req_lw_sw.valid      && !issue_req_lw_sw.ready      ||
+	                         issue_req_ftoi.valid       && !issue_req_ftoi.ready       ||
+	                         issue_req_itof.valid       && !issue_req_itof.ready       ||
+	                         issue_req_in.valid         && !issue_req_in.ready         ||
+	                         issue_req_out.valid        && !issue_req_out.ready        ||
+	                         issue_req_jal.valid        && !issue_req_jal.ready        ||
+	                         issue_req_b.valid          && !issue_req_b.ready));
 	wire prediction = 1;
 	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
@@ -128,38 +145,69 @@ module top #(
 	req_if issue_req_commit_ring();
 	req_if issue_req_add_sub();
 	req_if issue_req_mov();
+	req_if issue_req_fadd_fsub();
+	req_if issue_req_fmul();
+	req_if issue_req_fdiv_fsqrt();
+	req_if issue_req_fmov();
 	req_if issue_req_lw_sw();
+	req_if issue_req_ftoi();
+	req_if issue_req_itof();
 	req_if issue_req_in();
 	req_if issue_req_out();
 	req_if issue_req_jal();
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
 	logic[ROB_WIDTH-1:0] fpr_issue_tag;
-	assign issue_req_add_sub.valid = exec && issue_req_commit_ring.ready && inst.is_add_sub;
-	assign issue_req_mov.valid     = exec && issue_req_commit_ring.ready && inst.is_mov;
-	assign issue_req_lw_sw.valid   = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
-	assign issue_req_in.valid      = exec && issue_req_commit_ring.ready && inst.is_in;
-	assign issue_req_out.valid     = exec && issue_req_commit_ring.ready && inst.is_out;
-	assign issue_req_jal.valid     = exec && inst.is_jal;
-	assign issue_req_b.valid       = exec && issue_req_commit_ring.ready && inst.is_b;
+	assign issue_req_add_sub.valid    = exec && issue_req_commit_ring.ready && inst.is_add_sub;
+	assign issue_req_mov.valid        = exec && issue_req_commit_ring.ready && inst.is_mov;
+	assign issue_req_fadd_fsub.valid  = exec && issue_req_commit_ring.ready && inst.is_fadd_fsub;
+	assign issue_req_fmul.valid       = exec && issue_req_commit_ring.ready && inst.is_fmul;
+	assign issue_req_fdiv_fsqrt.valid = exec && issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
+	assign issue_req_fmov.valid       = exec && issue_req_commit_ring.ready && inst.is_fmov;
+	assign issue_req_lw_sw.valid      = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
+	assign issue_req_ftoi.valid       = exec && issue_req_commit_ring.ready && inst.is_ftoi;
+	assign issue_req_itof.valid       = exec && issue_req_commit_ring.ready && inst.is_itof;
+	assign issue_req_in.valid         = exec && issue_req_commit_ring.ready && inst.is_in;
+	assign issue_req_out.valid        = exec && issue_req_commit_ring.ready && inst.is_out;
+	assign issue_req_jal.valid        = exec && inst.is_jal;
+	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
 	commit_ring_entry issue_type;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :
+	                    inst.is_fadd_fsub ? COMMIT_FPR :
+	                    inst.is_fmul ? COMMIT_FPR :
+	                    inst.is_fdiv_fsqrt ? COMMIT_FPR :
+	                    inst.is_fmov ? COMMIT_FPR :
 	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
+	                    inst.is_ftoi ? COMMIT_GPR :
+	                    inst.is_itof ? COMMIT_FPR :
 	                    inst.is_in ? COMMIT_GPR_IN :
 	                    inst.is_out ? COMMIT_OUT :
 	                    inst.is_b ? COMMIT_B : COMMIT_X;
-	assign issue_req_commit_ring.valid = issue_req_add_sub.valid && issue_req_add_sub.ready ||
-	                                     issue_req_mov.valid     && issue_req_mov.ready     ||
-	                                     issue_req_lw_sw.valid   && issue_req_lw_sw.ready   ||
-	                                     issue_req_in.valid      && issue_req_in.ready      ||
-	                                     issue_req_out.valid     && issue_req_out.ready     ||
-	                                     issue_req_b.valid       && issue_req_b.ready;
-	wire issue_gpr = issue_req_add_sub.valid && issue_req_add_sub.ready ||
-	                 issue_req_mov.valid     && issue_req_mov.ready     ||
-	                 issue_req_lw_sw.valid   && issue_req_lw_sw.ready && inst.op[2:1]==2'b00 ||
-	                 issue_req_in.valid      && issue_req_in.ready;
-	wire issue_fpr = issue_req_lw_sw.valid && issue_req_lw_sw.ready && inst.op[2:1]==2'b01;
+	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                                     issue_req_mov.valid        && issue_req_mov.ready        ||
+	                                     issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
+	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
+	                                     issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
+	                                     issue_req_fmov.valid       && issue_req_fmov.ready       ||
+	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      ||
+	                                     issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
+	                                     issue_req_itof.valid       && issue_req_itof.ready       ||
+	                                     issue_req_in.valid         && issue_req_in.ready         ||
+	                                     issue_req_out.valid        && issue_req_out.ready        ||
+	                                     issue_req_b.valid          && issue_req_b.ready;
+	wire issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                 issue_req_mov.valid        && issue_req_mov.ready        ||
+	                 issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
+	                 issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
+	                 issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==0;
+	wire issue_fpr = issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
+	                 issue_req_fmul.valid       && issue_req_fmul.ready       ||
+	                 issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
+	                 issue_req_fmov.valid       && issue_req_fmov.ready       ||
+	                 issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
+	                 issue_req_itof.valid       && issue_req_itof.ready       ||
+	                 issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
 	//read
 	cdb_t     gpr_arch_read[1:0];
 	rob_entry gpr_rob_read[1:0];
@@ -185,55 +233,141 @@ module top #(
 	//cdb
 	cdb_t result_add_sub;
 	cdb_t result_mov;
+	cdb_t result_fadd_fsub;
+	cdb_t result_fmul;
+	cdb_t result_fdiv;
+	cdb_t result_fmov;
+	cdb_t result_fsqrt;
 	cdb_t result_lw;
+	cdb_t result_ftoi;
+	cdb_t result_itof;
 	cdb_t result_in;
+	cdb_t result_fin;
 	//gpr_cdb
 	req_if gpr_cdb_req_add_sub();
 	req_if gpr_cdb_req_mov();
 	req_if gpr_cdb_req_lw();
+	req_if gpr_cdb_req_ftoi();
 	req_if gpr_cdb_req_in();
-	assign gpr_cdb_req_lw.ready = 1;
-	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_req_lw.valid;
-	assign gpr_cdb_req_mov.ready = !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
-	assign gpr_cdb_req_in.ready = !gpr_cdb_rsv.valid;
+	assign gpr_cdb_req_ftoi.ready    = 1;
+	assign gpr_cdb_req_lw.ready      = !gpr_cdb_rsv[1].valid;
+	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid;
+	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
+	assign gpr_cdb_req_in.ready      = !gpr_cdb_rsv[0].valid;
 	typedef enum logic[1:0] {
 		GPR_CDB_ADD_SUB,
 		GPR_CDB_MOV,
-		GPR_CDB_LW
+		GPR_CDB_LW,
+		GPR_CDB_FTOI
 	} gpr_unit_t;
-	struct {
+	typedef struct {
 		logic valid;
 		gpr_unit_t unit;
-	} gpr_cdb_rsv;
+	} gpr_cdb_rsv_t;
+	gpr_cdb_rsv_t gpr_cdb_rsv[2:0];
 	always_ff @(posedge clk) begin
-		gpr_cdb_rsv.valid <= reset ? 0 :
-		                     gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ||
-		                     gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
-		                     gpr_cdb_req_mov.valid     && gpr_cdb_req_mov.ready;
-		gpr_cdb_rsv.unit <= gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? GPR_CDB_LW :
-		                    gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_MOV;
+		gpr_cdb_rsv[2].valid <= reset ? 0 : gpr_cdb_req_ftoi.valid && gpr_cdb_req_ftoi.ready;
+		gpr_cdb_rsv[1].valid <= reset ? 0 : gpr_cdb_rsv[2].valid;
+		gpr_cdb_rsv[0].valid <= reset ? 0 : gpr_cdb_rsv[1].valid ||
+		                        gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ||
+		                        gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
+		                        gpr_cdb_req_mov.valid     && gpr_cdb_req_mov.ready;
+		gpr_cdb_rsv[0].unit <= gpr_cdb_rsv[1].valid                                   ? GPR_CDB_FTOI :
+		                       gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? GPR_CDB_LW :
+		                       gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_MOV;
 	end
 	cdb_t gpr_cdb;
-	assign gpr_cdb.valid = gpr_cdb_rsv.valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
-	assign gpr_cdb.tag   = !gpr_cdb_rsv.valid ? result_in.tag :
-	                       gpr_cdb_rsv.unit==GPR_CDB_LW      ? result_lw.tag      :
-	                       gpr_cdb_rsv.unit==GPR_CDB_ADD_SUB ? result_add_sub.tag : result_mov.tag;
-	assign gpr_cdb.data  = !gpr_cdb_rsv.valid ? result_in.data :
-	                       gpr_cdb_rsv.unit==GPR_CDB_LW      ? result_lw.data      :
-	                       gpr_cdb_rsv.unit==GPR_CDB_ADD_SUB ? result_add_sub.data : result_mov.data;
+	assign gpr_cdb.valid = gpr_cdb_rsv[0].valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
+	assign gpr_cdb.tag   = !gpr_cdb_rsv[0].valid ? result_in.tag :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi.tag    :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw.tag      :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub.tag : result_mov.tag;
+	assign gpr_cdb.data  = !gpr_cdb_rsv[0].valid ? result_in.data :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi.data    :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw.data      :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub.data : result_mov.data;
 	//fpr_cdb
+	req_if fpr_cdb_req_fadd_fsub();
+	req_if fpr_cdb_req_fmul();
+	req_if fpr_cdb_req_fdiv_fsqrt();
+	logic  fpr_cdb_req_is_fsqrt;
+	req_if fpr_cdb_req_fmov();
 	req_if fpr_cdb_req_lw();
-	assign fpr_cdb_req_lw.ready = 1;
-	struct {
+	req_if fpr_cdb_req_itof();
+	req_if fpr_cdb_req_in();
+	assign fpr_cdb_req_fdiv_fsqrt.ready = 1;
+	assign fpr_cdb_req_fadd_fsub.ready  = !fpr_cdb_rsv[6].valid;
+	assign fpr_cdb_req_fmul.ready       = !fpr_cdb_rsv[4].valid;
+	assign fpr_cdb_req_itof.ready       = !fpr_cdb_rsv[3].valid;
+	assign fpr_cdb_req_lw.ready         = !fpr_cdb_rsv[1].valid;
+	assign fpr_cdb_req_fmov.ready       = !fpr_cdb_rsv[1].valid && !fpr_cdb_req_lw.valid;
+	assign fpr_cdb_req_in.ready         = !fpr_cdb_rsv[0].valid;
+	typedef enum logic[2:0] {
+		FPR_CDB_FDIV,
+		FPR_CDB_FSQRT,
+		FPR_CDB_FADD_FSUB,
+		FPR_CDB_FMUL,
+		FPR_CDB_ITOF,
+		FPR_CDB_LW,
+		FPR_CDB_FMOV
+	} fpr_unit_t;
+	typedef struct {
 		logic valid;
-	} fpr_cdb_rsv;
+		fpr_unit_t unit;
+	} fpr_cdb_rsv_t;
+	fpr_cdb_rsv_t fpr_cdb_rsv[13:0];
 	always_ff @(posedge clk) begin
-		fpr_cdb_rsv.valid <= reset ? 0 : fpr_cdb_req_lw.valid;
+		fpr_cdb_rsv[13].valid <= reset ? 0 : fpr_cdb_req_fdiv_fsqrt.valid && fpr_cdb_req_fdiv_fsqrt.ready;
+		fpr_cdb_rsv[12].valid <= reset ? 0 : fpr_cdb_rsv[13].valid;
+		fpr_cdb_rsv[11].valid <= reset ? 0 : fpr_cdb_rsv[12].valid;
+		fpr_cdb_rsv[10].valid <= reset ? 0 : fpr_cdb_rsv[11].valid;
+		fpr_cdb_rsv[9].valid <= reset ? 0 : fpr_cdb_rsv[10].valid;
+		fpr_cdb_rsv[8].valid <= reset ? 0 : fpr_cdb_rsv[9].valid;
+		fpr_cdb_rsv[7].valid <= reset ? 0 : fpr_cdb_rsv[8].valid;
+		fpr_cdb_rsv[6].valid <= reset ? 0 : fpr_cdb_rsv[7].valid;
+		fpr_cdb_rsv[5].valid <= reset ? 0 : fpr_cdb_rsv[6].valid ||
+		                        fpr_cdb_req_fadd_fsub.valid && fpr_cdb_req_fadd_fsub.ready;
+		fpr_cdb_rsv[4].valid <= reset ? 0 : fpr_cdb_rsv[5].valid;
+		fpr_cdb_rsv[3].valid <= reset ? 0 : fpr_cdb_rsv[4].valid ||
+		                        fpr_cdb_req_fmul.valid && fpr_cdb_req_fmul.ready;
+		fpr_cdb_rsv[2].valid <= reset ? 0 : fpr_cdb_rsv[3].valid ||
+		                        fpr_cdb_req_itof.valid && fpr_cdb_req_itof.ready;
+		fpr_cdb_rsv[1].valid <= reset ? 0 : fpr_cdb_rsv[2].valid;
+		fpr_cdb_rsv[0].valid <= reset ? 0 : fpr_cdb_rsv[1].valid ||
+		                        fpr_cdb_req_lw.valid   && fpr_cdb_req_lw.ready ||
+		                        fpr_cdb_req_fmov.valid && fpr_cdb_req_fmov.ready;
+		fpr_cdb_rsv[13].unit <= fpr_cdb_req_is_fsqrt ? FPR_CDB_FSQRT : FPR_CDB_FDIV;
+		fpr_cdb_rsv[12].unit <= fpr_cdb_rsv[13].unit;
+		fpr_cdb_rsv[11].unit <= fpr_cdb_rsv[12].unit;
+		fpr_cdb_rsv[10].unit <= fpr_cdb_rsv[11].unit;
+		fpr_cdb_rsv[9].unit <= fpr_cdb_rsv[10].unit;
+		fpr_cdb_rsv[8].unit <= fpr_cdb_rsv[9].unit;
+		fpr_cdb_rsv[7].unit <= fpr_cdb_rsv[8].unit;
+		fpr_cdb_rsv[6].unit <= fpr_cdb_rsv[7].unit;
+		fpr_cdb_rsv[5].unit <= fpr_cdb_rsv[6].valid ? fpr_cdb_rsv[6].unit : FPR_CDB_FADD_FSUB;
+		fpr_cdb_rsv[4].unit <= fpr_cdb_rsv[5].unit;
+		fpr_cdb_rsv[3].unit <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].unit : FPR_CDB_FMUL;
+		fpr_cdb_rsv[2].unit <= fpr_cdb_rsv[3].valid ? fpr_cdb_rsv[3].unit : FPR_CDB_ITOF;
+		fpr_cdb_rsv[1].unit <= fpr_cdb_rsv[2].unit;
+		fpr_cdb_rsv[0].unit <= fpr_cdb_rsv[1].valid                         ? fpr_cdb_rsv[1].unit :
+		                       fpr_cdb_req_lw.valid && fpr_cdb_req_lw.ready ? FPR_CDB_LW : FPR_CDB_FMOV;
 	end
 	cdb_t fpr_cdb;
-	assign fpr_cdb.valid = fpr_cdb_rsv.valid;
-	assign fpr_cdb.tag   = result_lw.tag;
-	assign fpr_cdb.data  = result_lw.data;
+	assign fpr_cdb.valid = fpr_cdb_rsv[0].valid || fpr_cdb_req_in.valid&&fpr_cdb_req_in.ready;
+	assign fpr_cdb.tag   = !fpr_cdb_rsv[0].valid ? result_fin.tag :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv.tag      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt.tag     :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub.tag :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul.tag      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof.tag      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw.tag        : result_fmov.tag;
+	assign fpr_cdb.data  = !fpr_cdb_rsv[0].valid ? result_fin.data :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv.data      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt.data     :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub.data :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul.data      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof.data      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw.data        : result_fmov.data;
 
 	//commit
 	req_if commit_req_gpr();
@@ -339,6 +473,52 @@ module top #(
 		.result(result_mov),
 		.reset
 	);
+	fadd_fsub fadd_fsub(
+		.clk,
+		.inst,
+		.fpr_read,
+		.fpr_cdb,
+		.fpr_issue_tag,
+		.issue_req(issue_req_fadd_fsub),
+		.fpr_cdb_req(fpr_cdb_req_fadd_fsub),
+		.result(result_fadd_fsub),
+		.reset
+	);
+	fmul fmul(
+		.clk,
+		.inst,
+		.fpr_read,
+		.fpr_cdb,
+		.fpr_issue_tag,
+		.issue_req(issue_req_fmul),
+		.fpr_cdb_req(fpr_cdb_req_fmul),
+		.result(result_fmul),
+		.reset
+	);
+	fdiv_fsqrt fdiv_fsqrt(
+		.clk,
+		.inst,
+		.fpr_read,
+		.fpr_cdb,
+		.fpr_issue_tag,
+		.issue_req(issue_req_fdiv_fsqrt),
+		.fpr_cdb_req(fpr_cdb_req_fdiv_fsqrt),
+		.fpr_cdb_req_is_fsqrt,
+		.result_fdiv,
+		.result_fsqrt,
+		.reset
+	);
+	fmov fmov(
+		.clk,
+		.inst,
+		.fpr_read,
+		.fpr_cdb,
+		.fpr_issue_tag,
+		.issue_req(issue_req_fmov),
+		.fpr_cdb_req(fpr_cdb_req_fmov),
+		.result(result_fmov),
+		.reset
+	);
 	lw_sw lw_sw(
 		.clk,
 		.inst,
@@ -355,12 +535,38 @@ module top #(
 		.result(result_lw),
 		.reset
 	);
+	ftoi ftoi(
+		.clk,
+		.inst,
+		.fpr_read,
+		.fpr_cdb,
+		.gpr_issue_tag,
+		.issue_req(issue_req_ftoi),
+		.gpr_cdb_req(gpr_cdb_req_ftoi),
+		.result(result_ftoi),
+		.reset
+	);
+	itof itof(
+		.clk,
+		.inst,
+		.gpr_read,
+		.gpr_cdb,
+		.fpr_issue_tag,
+		.issue_req(issue_req_itof),
+		.fpr_cdb_req(fpr_cdb_req_itof),
+		.result(result_itof),
+		.reset
+	);
 	in in(
 		.clk,
+		.inst,
 		.gpr_issue_tag,
+		.fpr_issue_tag,
 		.issue_req(issue_req_in),
 		.gpr_cdb_req(gpr_cdb_req_in),
-		.result(result_in),
+		.fpr_cdb_req(fpr_cdb_req_in),
+		.result_in,
+		.result_fin,
 		.receiver_out,
 		.receiver_valid,
 		.receiver_ready
