@@ -90,6 +90,7 @@ module fadd_fsub #(
 		end
 	end
 	fadd_fsub_core fadd_fsub_core(
+		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
 		.s_axis_operation_tdata(e[dispatched].is_fsub),

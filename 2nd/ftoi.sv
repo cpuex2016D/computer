@@ -75,6 +75,7 @@ module ftoi #(
 		end
 	end
 	ftoi_core ftoi_core(
+		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd.data),
 		.m_axis_result_tdata(result)
 	);
