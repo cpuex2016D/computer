@@ -18,7 +18,8 @@ module add_sub #(
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
 	req_if gpr_cdb_req,
-	output cdb_t result,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result,
 	input logic reset
 );
 	localparam N_ENTRY = 2;
@@ -82,6 +83,7 @@ module add_sub #(
 	wire dispatched = e[0].opd[0].valid&&e[0].opd[1].valid ? 0 : 1;  //dispatchされるエントリの番号
 	assign gpr_cdb_req.valid = e[0].valid&&e[0].opd[0].valid&&e[0].opd[1].valid ||
 	                           e[1].valid&&e[1].opd[0].valid&&e[1].opd[1].valid;
+	assign tag = e[dispatched].tag;
 	wire dispatch = gpr_cdb_req.valid && gpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
@@ -98,10 +100,9 @@ module add_sub #(
 				e[1] <= e[1].valid ? e_updated[1] : e[0].valid ? e_new : e_invalid;
 			end
 		end
-		result.tag <= e[dispatched].tag;
 		case (e[dispatched].add_or_sub)
-			ADD: result.data <= e[dispatched].opd[0].data + e[dispatched].opd[1].data;
-			SUB: result.data <= e[dispatched].opd[0].data - e[dispatched].opd[1].data;
+			ADD: result <= e[dispatched].opd[0].data + e[dispatched].opd[1].data;
+			SUB: result <= e[dispatched].opd[0].data - e[dispatched].opd[1].data;
 		endcase
 	end
 endmodule

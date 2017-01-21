@@ -40,7 +40,8 @@ module lw_sw #(
 	req_if gpr_cdb_req,
 	req_if fpr_cdb_req,
 	req_if commit_req,
-	output cdb_t result,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result,
 	input logic reset
 );
 	localparam N_AGU_ENTRY = 2;
@@ -142,6 +143,7 @@ module lw_sw #(
 	                             sw_e[3].addr_valid&&sw_e[3].sw_data.valid)));
 	assign gpr_cdb_req.valid = lw_e0_valid && disambiguatable && lw_e[0].gpr_or_fpr==GPR;
 	assign fpr_cdb_req.valid = lw_e0_valid && disambiguatable && lw_e[0].gpr_or_fpr==FPR;
+	assign tag = lw_e[0].tag;
 	wire lw_dispatch = gpr_cdb_req.valid && gpr_cdb_req.ready ||
 	                   fpr_cdb_req.valid && fpr_cdb_req.ready;
 
@@ -158,11 +160,10 @@ module lw_sw #(
 		lw_count <= reset ? 0 : lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
 		lw_e[0] <= lw_e_next[0];
 		lw_e[1] <= lw_e_next[1];
-		result.tag <= lw_e[0].tag;
-		result.data <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr ? sw_e[3].sw_data.data :
-		               lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr ? sw_e[2].sw_data.data :
-		               lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr ? sw_e[1].sw_data.data :
-		               lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr ? sw_e[0].sw_data.data : data_mem_out;
+		result <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr ? sw_e[3].sw_data.data :
+		          lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr ? sw_e[2].sw_data.data :
+		          lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr ? sw_e[1].sw_data.data :
+		          lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr ? sw_e[0].sw_data.data : data_mem_out;
 	end
 
 	//sw

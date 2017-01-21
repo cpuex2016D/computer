@@ -15,7 +15,8 @@ module mov #(
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
 	req_if gpr_cdb_req,
-	output cdb_t result,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result,
 	input logic reset
 );
 	localparam N_ENTRY = 2;
@@ -59,6 +60,8 @@ module mov #(
 	assign dispatchable[1] = e_updated[1].valid&&e_updated[1].opd.valid;
 	assign dispatchable[2] = e_new       .valid&&e_new       .opd.valid;
 	assign gpr_cdb_req.valid = dispatchable[0] || dispatchable[1] || dispatchable[2];
+	assign tag = dispatchable[0] ? e_updated[0].tag :
+	             dispatchable[1] ? e_updated[1].tag : e_new.tag;
 	wire dispatch = gpr_cdb_req.valid && gpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
@@ -75,9 +78,7 @@ module mov #(
 				e[1] <= e[1].valid ? e_updated[1] : e[0].valid ? e_new : e_invalid;
 			end
 		end
-		result.tag  <= dispatchable[0] ? e_updated[0].tag :
-		               dispatchable[1] ? e_updated[1].tag : e_new.tag;
-		result.data <= dispatchable[0] ? e_updated[0].opd.data :
-		               dispatchable[1] ? e_updated[1].opd.data : e_new.opd.data;
+		result <= dispatchable[0] ? e_updated[0].opd.data :
+		          dispatchable[1] ? e_updated[1].opd.data : e_new.opd.data;
 	end
 endmodule

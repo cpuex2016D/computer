@@ -16,7 +16,8 @@ module fadd_fsub #(
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	req_if issue_req,
 	req_if fpr_cdb_req,
-	output cdb_t result,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result,
 	input logic reset
 );
 	localparam N_ENTRY = 2;
@@ -70,6 +71,7 @@ module fadd_fsub #(
 	wire dispatched = e[0].opd[0].valid&&e[0].opd[1].valid ? 0 : 1;  //dispatchされるエントリの番号
 	assign fpr_cdb_req.valid = e[0].valid&&e[0].opd[0].valid&&e[0].opd[1].valid ||
 	                           e[1].valid&&e[1].opd[0].valid&&e[1].opd[1].valid;
+	assign tag = e[dispatched].tag;
 	wire dispatch = fpr_cdb_req.valid && fpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
@@ -89,10 +91,8 @@ module fadd_fsub #(
 	end
 	fadd_fsub_core fadd_fsub_core(
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
-		.s_axis_a_tuser(e[dispatched].tag),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
 		.s_axis_operation_tdata(e[dispatched].is_fsub),
-		.m_axis_result_tdata(result.data),
-		.m_axis_result_tuser(result.tag)
+		.m_axis_result_tdata(result)
 	);
 endmodule

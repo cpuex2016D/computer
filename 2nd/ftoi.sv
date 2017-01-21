@@ -15,7 +15,8 @@ module ftoi #(
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
 	req_if gpr_cdb_req,
-	output cdb_t result,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result,
 	input logic reset
 );
 	localparam N_ENTRY = 2;
@@ -55,6 +56,7 @@ module ftoi #(
 	wire dispatched = e[0].opd.valid ? 0 : 1;  //dispatchされるエントリの番号
 	assign gpr_cdb_req.valid = e[0].valid&&e[0].opd.valid ||
 	                           e[1].valid&&e[1].opd.valid;
+	assign tag = e[dispatched].tag;
 	wire dispatch = gpr_cdb_req.valid && gpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
@@ -74,8 +76,6 @@ module ftoi #(
 	end
 	ftoi_core ftoi_core(
 		.s_axis_a_tdata(e[dispatched].opd.data),
-		.s_axis_a_tuser(e[dispatched].tag),
-		.m_axis_result_tdata(result.data),
-		.m_axis_result_tuser(result.tag)
+		.m_axis_result_tdata(result)
 	);
 endmodule

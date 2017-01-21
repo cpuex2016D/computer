@@ -18,8 +18,9 @@ module fdiv_fsqrt #(
 	req_if issue_req,
 	req_if fpr_cdb_req,
 	output logic fpr_cdb_req_is_fsqrt,
-	output cdb_t result_fdiv,
-	output cdb_t result_fsqrt,
+	output logic[ROB_WIDTH-1:0] tag,
+	output logic[31:0] result_fdiv,
+	output logic[31:0] result_fsqrt,
 	input logic reset
 );
 	localparam N_ENTRY = 2;
@@ -77,6 +78,7 @@ module fdiv_fsqrt #(
 	assign fpr_cdb_req.valid = e[0].valid&&e[0].opd[0].valid&&e[0].opd[1].valid ||
 	                           e[1].valid&&e[1].opd[0].valid&&e[1].opd[1].valid;
 	assign fpr_cdb_req_is_fsqrt = e[dispatched].fdiv_or_fsqrt==FSQRT;
+	assign tag = e[dispatched].tag;
 	wire dispatch = fpr_cdb_req.valid && fpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
@@ -97,13 +99,10 @@ module fdiv_fsqrt #(
 	fdiv_core fdiv_core(
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
-		.m_axis_result_tdata(result_fdiv.data)
+		.m_axis_result_tdata(result_fdiv)
 	);
 	fsqrt_core fsqrt_core(
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
-		.s_axis_a_tuser(e[dispatched].tag),
-		.m_axis_result_tdata(result_fsqrt.data),
-		.m_axis_result_tuser(result_fsqrt.tag)
+		.m_axis_result_tdata(result_fsqrt)
 	);
-	assign result_fdiv.tag = result_fsqrt.tag;
 endmodule

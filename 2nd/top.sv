@@ -231,18 +231,26 @@ module top #(
 	end
 
 	//cdb
-	cdb_t result_add_sub;
-	cdb_t result_mov;
-	cdb_t result_fadd_fsub;
-	cdb_t result_fmul;
-	cdb_t result_fdiv;
-	cdb_t result_fmov;
-	cdb_t result_fsqrt;
-	cdb_t result_lw;
-	cdb_t result_ftoi;
-	cdb_t result_itof;
-	cdb_t result_in;
-	cdb_t result_fin;
+	logic[ROB_WIDTH-1:0] tag_add_sub;
+	logic[ROB_WIDTH-1:0] tag_mov;
+	logic[ROB_WIDTH-1:0] tag_fadd_fsub;
+	logic[ROB_WIDTH-1:0] tag_fmul;
+	logic[ROB_WIDTH-1:0] tag_fdiv_fsqrt;
+	logic[ROB_WIDTH-1:0] tag_fmov;
+	logic[ROB_WIDTH-1:0] tag_lw;
+	logic[ROB_WIDTH-1:0] tag_ftoi;
+	logic[ROB_WIDTH-1:0] tag_itof;
+	logic[31:0] result_add_sub;
+	logic[31:0] result_mov;
+	logic[31:0] result_fadd_fsub;
+	logic[31:0] result_fmul;
+	logic[31:0] result_fdiv;
+	logic[31:0] result_fmov;
+	logic[31:0] result_fsqrt;
+	logic[31:0] result_lw;
+	logic[31:0] result_ftoi;
+	logic[31:0] result_itof;
+	logic[31:0] result_in;
 	//gpr_cdb
 	req_if gpr_cdb_req_add_sub();
 	req_if gpr_cdb_req_mov();
@@ -262,6 +270,7 @@ module top #(
 	} gpr_unit_t;
 	typedef struct {
 		logic valid;
+		logic[ROB_WIDTH-1:0] tag;
 		gpr_unit_t unit;
 	} gpr_cdb_rsv_t;
 	gpr_cdb_rsv_t gpr_cdb_rsv[2:0];
@@ -272,20 +281,22 @@ module top #(
 		                        gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ||
 		                        gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
 		                        gpr_cdb_req_mov.valid     && gpr_cdb_req_mov.ready;
+		gpr_cdb_rsv[2].tag <= tag_ftoi;
+		gpr_cdb_rsv[1].tag <= gpr_cdb_rsv[2].tag;
+		gpr_cdb_rsv[0].tag <= gpr_cdb_rsv[1].valid                                   ? gpr_cdb_rsv[1].tag :
+		                      gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? tag_lw :
+		                      gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? tag_add_sub : tag_mov;
 		gpr_cdb_rsv[0].unit <= gpr_cdb_rsv[1].valid                                   ? GPR_CDB_FTOI :
 		                       gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? GPR_CDB_LW :
 		                       gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_MOV;
 	end
 	cdb_t gpr_cdb;
 	assign gpr_cdb.valid = gpr_cdb_rsv[0].valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
-	assign gpr_cdb.tag   = !gpr_cdb_rsv[0].valid ? result_in.tag :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi.tag    :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw.tag      :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub.tag : result_mov.tag;
-	assign gpr_cdb.data  = !gpr_cdb_rsv[0].valid ? result_in.data :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi.data    :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw.data      :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub.data : result_mov.data;
+	assign gpr_cdb.tag   = gpr_cdb_rsv[0].valid ? gpr_cdb_rsv[0].tag : gpr_issue_tag;
+	assign gpr_cdb.data  = !gpr_cdb_rsv[0].valid ? result_in :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi    :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw      :
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub : result_mov;
 	//fpr_cdb
 	req_if fpr_cdb_req_fadd_fsub();
 	req_if fpr_cdb_req_fmul();
@@ -313,6 +324,7 @@ module top #(
 	} fpr_unit_t;
 	typedef struct {
 		logic valid;
+		logic[ROB_WIDTH-1:0] tag;
 		fpr_unit_t unit;
 	} fpr_cdb_rsv_t;
 	fpr_cdb_rsv_t fpr_cdb_rsv[13:0];
@@ -336,6 +348,21 @@ module top #(
 		fpr_cdb_rsv[0].valid <= reset ? 0 : fpr_cdb_rsv[1].valid ||
 		                        fpr_cdb_req_lw.valid   && fpr_cdb_req_lw.ready ||
 		                        fpr_cdb_req_fmov.valid && fpr_cdb_req_fmov.ready;
+		fpr_cdb_rsv[13].tag <= tag_fdiv_fsqrt;
+		fpr_cdb_rsv[12].tag <= fpr_cdb_rsv[13].tag;
+		fpr_cdb_rsv[11].tag <= fpr_cdb_rsv[12].tag;
+		fpr_cdb_rsv[10].tag <= fpr_cdb_rsv[11].tag;
+		fpr_cdb_rsv[9].tag <= fpr_cdb_rsv[10].tag;
+		fpr_cdb_rsv[8].tag <= fpr_cdb_rsv[9].tag;
+		fpr_cdb_rsv[7].tag <= fpr_cdb_rsv[8].tag;
+		fpr_cdb_rsv[6].tag <= fpr_cdb_rsv[7].tag;
+		fpr_cdb_rsv[5].tag <= fpr_cdb_rsv[6].valid ? fpr_cdb_rsv[6].tag : tag_fadd_fsub;
+		fpr_cdb_rsv[4].tag <= fpr_cdb_rsv[5].tag;
+		fpr_cdb_rsv[3].tag <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].tag : tag_fmul;
+		fpr_cdb_rsv[2].tag <= fpr_cdb_rsv[3].valid ? fpr_cdb_rsv[3].tag : tag_itof;
+		fpr_cdb_rsv[1].tag <= fpr_cdb_rsv[2].tag;
+		fpr_cdb_rsv[0].tag <= fpr_cdb_rsv[1].valid                         ? fpr_cdb_rsv[1].tag :
+		                      fpr_cdb_req_lw.valid && fpr_cdb_req_lw.ready ? tag_lw : tag_fmov;
 		fpr_cdb_rsv[13].unit <= fpr_cdb_req_is_fsqrt ? FPR_CDB_FSQRT : FPR_CDB_FDIV;
 		fpr_cdb_rsv[12].unit <= fpr_cdb_rsv[13].unit;
 		fpr_cdb_rsv[11].unit <= fpr_cdb_rsv[12].unit;
@@ -354,20 +381,14 @@ module top #(
 	end
 	cdb_t fpr_cdb;
 	assign fpr_cdb.valid = fpr_cdb_rsv[0].valid || fpr_cdb_req_in.valid&&fpr_cdb_req_in.ready;
-	assign fpr_cdb.tag   = !fpr_cdb_rsv[0].valid ? result_fin.tag :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv.tag      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt.tag     :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub.tag :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul.tag      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof.tag      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw.tag        : result_fmov.tag;
-	assign fpr_cdb.data  = !fpr_cdb_rsv[0].valid ? result_fin.data :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv.data      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt.data     :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub.data :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul.data      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof.data      :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw.data        : result_fmov.data;
+	assign fpr_cdb.tag   = fpr_cdb_rsv[0].valid ? fpr_cdb_rsv[0].tag : fpr_issue_tag;
+	assign fpr_cdb.data  = !fpr_cdb_rsv[0].valid ? result_in :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt     :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw        : result_fmov;
 
 	//commit
 	req_if commit_req_gpr();
@@ -459,6 +480,7 @@ module top #(
 		.gpr_issue_tag,
 		.issue_req(issue_req_add_sub),
 		.gpr_cdb_req(gpr_cdb_req_add_sub),
+		.tag(tag_add_sub),
 		.result(result_add_sub),
 		.reset
 	);
@@ -470,6 +492,7 @@ module top #(
 		.gpr_issue_tag,
 		.issue_req(issue_req_mov),
 		.gpr_cdb_req(gpr_cdb_req_mov),
+		.tag(tag_mov),
 		.result(result_mov),
 		.reset
 	);
@@ -481,6 +504,7 @@ module top #(
 		.fpr_issue_tag,
 		.issue_req(issue_req_fadd_fsub),
 		.fpr_cdb_req(fpr_cdb_req_fadd_fsub),
+		.tag(tag_fadd_fsub),
 		.result(result_fadd_fsub),
 		.reset
 	);
@@ -492,6 +516,7 @@ module top #(
 		.fpr_issue_tag,
 		.issue_req(issue_req_fmul),
 		.fpr_cdb_req(fpr_cdb_req_fmul),
+		.tag(tag_fmul),
 		.result(result_fmul),
 		.reset
 	);
@@ -504,6 +529,7 @@ module top #(
 		.issue_req(issue_req_fdiv_fsqrt),
 		.fpr_cdb_req(fpr_cdb_req_fdiv_fsqrt),
 		.fpr_cdb_req_is_fsqrt,
+		.tag(tag_fdiv_fsqrt),
 		.result_fdiv,
 		.result_fsqrt,
 		.reset
@@ -516,6 +542,7 @@ module top #(
 		.fpr_issue_tag,
 		.issue_req(issue_req_fmov),
 		.fpr_cdb_req(fpr_cdb_req_fmov),
+		.tag(tag_fmov),
 		.result(result_fmov),
 		.reset
 	);
@@ -532,6 +559,7 @@ module top #(
 		.gpr_cdb_req(gpr_cdb_req_lw),
 		.fpr_cdb_req(fpr_cdb_req_lw),
 		.commit_req(commit_req_sw),
+		.tag(tag_lw),
 		.result(result_lw),
 		.reset
 	);
@@ -543,6 +571,7 @@ module top #(
 		.gpr_issue_tag,
 		.issue_req(issue_req_ftoi),
 		.gpr_cdb_req(gpr_cdb_req_ftoi),
+		.tag(tag_ftoi),
 		.result(result_ftoi),
 		.reset
 	);
@@ -554,19 +583,17 @@ module top #(
 		.fpr_issue_tag,
 		.issue_req(issue_req_itof),
 		.fpr_cdb_req(fpr_cdb_req_itof),
+		.tag(tag_itof),
 		.result(result_itof),
 		.reset
 	);
 	in in(
 		.clk,
 		.inst,
-		.gpr_issue_tag,
-		.fpr_issue_tag,
 		.issue_req(issue_req_in),
 		.gpr_cdb_req(gpr_cdb_req_in),
 		.fpr_cdb_req(fpr_cdb_req_in),
-		.result_in,
-		.result_fin,
+		.result(result_in),
 		.receiver_out,
 		.receiver_valid,
 		.receiver_ready
