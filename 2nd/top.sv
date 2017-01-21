@@ -97,8 +97,9 @@ module top #(
 	inst_if inst();
 	wire inst_mem_stall = (mode==LOAD && !receiver_valid) ||
 	                      (exec &&
-	                        ((inst.is_add_sub || inst.is_lw_sw || inst.is_in || inst.is_out || inst.is_b) && !issue_req_commit_ring.ready ||
+	                        ((inst.is_add_sub || inst.is_mov || inst.is_lw_sw || inst.is_in || inst.is_out || inst.is_b) && !issue_req_commit_ring.ready ||
 	                         issue_req_add_sub.valid && !issue_req_add_sub.ready ||
+	                         issue_req_mov.valid     && !issue_req_mov.ready     ||
 	                         issue_req_lw_sw.valid   && !issue_req_lw_sw.ready   ||
 	                         issue_req_in.valid      && !issue_req_in.ready      ||
 	                         issue_req_out.valid     && !issue_req_out.ready     ||
