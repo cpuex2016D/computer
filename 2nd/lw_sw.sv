@@ -147,7 +147,7 @@ module lw_sw #(
 
 	always_comb begin
 		if (lw_dispatch) begin
-			lw_e_next[0] <= lw_count>=2 ? lw_e_updated[0] : lw_e_new;
+			lw_e_next[0] <= lw_count>=2 ? lw_e_updated[1] : lw_e_new;
 			lw_e_next[1] <= lw_e_new;
 		end else begin
 			lw_e_next[0] <= lw_count>=1 ? lw_e_updated[0] : lw_e_new;
@@ -195,9 +195,9 @@ module lw_sw #(
 		end
 		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
 		if (sw_commit) begin
-			sw_e[0] <= sw_count>=2 ? sw_e_updated[0] : sw_e_new;
-			sw_e[1] <= sw_count>=3 ? sw_e_updated[1] : sw_e_new;
-			sw_e[2] <= sw_count>=4 ? sw_e_updated[2] : sw_e_new;
+			sw_e[0] <= sw_count>=2 ? sw_e_updated[1] : sw_e_new;
+			sw_e[1] <= sw_count>=3 ? sw_e_updated[2] : sw_e_new;
+			sw_e[2] <= sw_count>=4 ? sw_e_updated[3] : sw_e_new;
 			sw_e[3] <= sw_e_new;
 		end else begin
 			sw_e[0] <= sw_count>=1 ? sw_e_updated[0] : sw_e_new;
