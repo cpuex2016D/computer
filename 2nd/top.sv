@@ -53,10 +53,6 @@ module top #(
 	assign LED[6:0] = pc;
 
 	//mode
-	typedef enum logic {
-		LOAD,
-		EXEC
-	} mode_t;
 	mode_t mode = LOAD;
 	mode_t next_mode;
 	assign next_mode = SW_W ? LOAD : SW_E ? EXEC : mode;
@@ -133,6 +129,7 @@ module top #(
 		.we(mode==LOAD && receiver_valid),
 		.reset_pc(mode_change),
 		.stall(inst_mem_stall),
+		.mode,
 		.pc,
 		.inst,
 		.prediction,

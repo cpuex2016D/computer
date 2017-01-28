@@ -37,4 +37,6 @@ package my_package;
 		 COMMIT_NULL,
 		 COMMIT_X = 3'bx
 	} commit_ring_entry;
+
+	typedef enum logic {LOAD, EXEC} mode_t;
 endpackage

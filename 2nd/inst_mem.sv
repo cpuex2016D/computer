@@ -7,6 +7,7 @@ module inst_mem #(
 	input logic we,
 	input logic reset_pc,
 	input logic stall,
+	input mode_t mode,
 	output logic[INST_MEM_WIDTH-1:0] pc = 0,
 	inst_if inst,
 	input prediction,
@@ -26,7 +27,9 @@ module inst_mem #(
 		end else if (reset) begin
 			pc <= addr_on_failure + 1;
 		end else if (!stall) begin
-			if (inst.is_j || inst.is_b && prediction) begin
+			if (mode==LOAD) begin
+				pc <= pc + 1;
+			end else if (inst.is_j || inst.is_b && prediction) begin
 				pc <= inst.c_j + 1;
 			end else if (inst.is_jr) begin
 				pc <= return_addr + 1;
