@@ -93,7 +93,7 @@ module fadd_fsub #(
 		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
-		.s_axis_operation_tdata(e[dispatched].is_fsub),
+		.s_axis_operation_tdata({7'b0, e[dispatched].is_fsub}),
 		.m_axis_result_tdata(result)
 	);
 endmodule
