@@ -3,8 +3,8 @@
 module rob #(
 ) (
 	input logic clk,
-	input logic[ROB_WIDTH-1:0] read_tag[1:0],
-	output rob_entry read[1:0],
+	input cdb_t arch_read[1:0],
+	output rob_entry rob_read[1:0],
 	input cdb_t cdb,
 	input logic issue,
 	inst_if inst,
@@ -20,7 +20,7 @@ module rob #(
 	logic[ROB_WIDTH-1:0] commit_pointer = 0;
 
 	for (genvar i=0; i<2; i++) begin
-		assign read[i] = rob[read_tag[i]];
+		assign rob_read[i] = rob[arch_read[i].tag];
 	end
 	assign issue_tag = issue_pointer;
 	assign commit_tag = commit_pointer;

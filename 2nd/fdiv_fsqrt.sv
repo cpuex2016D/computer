@@ -53,15 +53,11 @@ module fdiv_fsqrt #(
 	assign e_new.valid         = issue_req.valid;
 	assign e_new.tag           = fpr_issue_tag;
 	assign e_new.fdiv_or_fsqrt = inst.op[2] ? FSQRT : FDIV;
-	assign e_new.opd[0].valid  = fpr_read[0].valid ? tag_match(fpr_cdb, e_new.opd[0].tag) ? 1'bx : 1
-	                                               : tag_match(fpr_cdb, e_new.opd[0].tag) ?    1 : 0;
-	assign e_new.opd[1].valid  = e_new.fdiv_or_fsqrt==FSQRT ||
-	                             (fpr_read[1].valid ? tag_match(fpr_cdb, e_new.opd[1].tag) ? 1'bx : 1
-	                                                : tag_match(fpr_cdb, e_new.opd[1].tag) ?    1 : 0);
+	assign e_new.opd[0].valid  = fpr_read[0].valid;
+	assign e_new.opd[1].valid  = e_new.fdiv_or_fsqrt==FSQRT || fpr_read[1].valid;
 	for (genvar j=0; j<2; j++) begin
 		assign e_new.opd[j].tag  = fpr_read[j].tag;
-		assign e_new.opd[j].data = fpr_read[j].valid ? tag_match(fpr_cdb, e_new.opd[j].tag) ? 32'bx        : fpr_read[j].data
-		                                             : tag_match(fpr_cdb, e_new.opd[j].tag) ? fpr_cdb.data : 32'bx;
+		assign e_new.opd[j].data = fpr_read[j].data;
 	end
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		assign e_updated[i].valid         = e[i].valid;

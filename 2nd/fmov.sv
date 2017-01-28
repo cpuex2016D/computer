@@ -51,12 +51,9 @@ module fmov #(
 	assign e_new.tag       = fpr_issue_tag;
 	assign e_new.is_fneg   = inst.op[0];
 	assign e_new.is_fabs   = inst.op[1];
-	assign e_new.opd.valid = fpr_read[0].valid ? tag_match(fpr_cdb, e_new.opd.tag) ? 1'bx : 1
-	                                           : tag_match(fpr_cdb, e_new.opd.tag) ?    1 : 0;
+	assign e_new.opd.valid = fpr_read[0].valid;
 	assign e_new.opd.tag   = fpr_read[0].tag;
-	assign e_new.opd.data  = modify_sign(e_new.is_fneg, e_new.is_fabs,
-	                           fpr_read[0].valid ? tag_match(fpr_cdb, e_new.opd.tag) ? 32'bx        : fpr_read[0].data
-	                                             : tag_match(fpr_cdb, e_new.opd.tag) ? fpr_cdb.data : 32'bx);
+	assign e_new.opd.data  = modify_sign(e_new.is_fneg, e_new.is_fabs, fpr_read[0].data);
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		assign e_updated[i].valid     = e[i].valid;
 		assign e_updated[i].tag       = e[i].tag;

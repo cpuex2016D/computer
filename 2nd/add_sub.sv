@@ -55,18 +55,12 @@ module add_sub #(
 	assign e_new.tag        = gpr_issue_tag;
 	assign e_new.add_or_sub = inst.op[1] ? SUB : ADD;
 	assign e_new.sl2        = inst.op[2];
-	assign e_new.opd[0].valid = inst.op[0] ||
-	                            (gpr_read[1].valid ? tag_match(gpr_cdb, e_new.opd[0].tag) ? 1'bx : 1
-	                                               : tag_match(gpr_cdb, e_new.opd[0].tag) ?    1 : 0);  //オペランドが入れ替わるので注意
+	assign e_new.opd[0].valid = inst.op[0] || gpr_read[1].valid;  //オペランドが入れ替わるので注意
 	assign e_new.opd[0].tag   = gpr_read[1].tag;
-	assign e_new.opd[0].data  = inst.op[0] ? 32'($signed(inst.c_add_sub)) :
-	                            (gpr_read[1].valid ? tag_match(gpr_cdb, e_new.opd[0].tag) ? 32'bx        : gpr_read[1].data
-	                                               : tag_match(gpr_cdb, e_new.opd[0].tag) ? gpr_cdb.data : 32'bx);
-	assign e_new.opd[1].valid = (gpr_read[0].valid ? tag_match(gpr_cdb, e_new.opd[1].tag) ? 1'bx : 1
-	                                               : tag_match(gpr_cdb, e_new.opd[1].tag) ?    1 : 0);
+	assign e_new.opd[0].data  = inst.op[0] ? 32'($signed(inst.c_add_sub)) : gpr_read[1].data;
+	assign e_new.opd[1].valid = gpr_read[0].valid;
 	assign e_new.opd[1].tag   = gpr_read[0].tag;
-	assign e_new.opd[1].data  = (gpr_read[0].valid ? tag_match(gpr_cdb, e_new.opd[1].tag) ? 32'bx        : gpr_read[0].data
-	                                               : tag_match(gpr_cdb, e_new.opd[1].tag) ? gpr_cdb.data : 32'bx) << (e_new.sl2 ? 2 : 0);
+	assign e_new.opd[1].data  = gpr_read[0].data << (e_new.sl2 ? 2 : 0);
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		assign e_updated[i].valid      = e[i].valid;
 		assign e_updated[i].tag        = e[i].tag;

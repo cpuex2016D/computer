@@ -51,11 +51,9 @@ module fadd_fsub #(
 	assign e_new.tag     = fpr_issue_tag;
 	assign e_new.is_fsub = inst.op[0];
 	for (genvar j=0; j<2; j++) begin
-		assign e_new.opd[j].valid = fpr_read[j].valid ? tag_match(fpr_cdb, e_new.opd[j].tag) ? 1'bx : 1
-		                                              : tag_match(fpr_cdb, e_new.opd[j].tag) ?    1 : 0;
+		assign e_new.opd[j].valid = fpr_read[j].valid;
 		assign e_new.opd[j].tag   = fpr_read[j].tag;
-		assign e_new.opd[j].data  = fpr_read[j].valid ? tag_match(fpr_cdb, e_new.opd[j].tag) ? 32'bx        : fpr_read[j].data
-		                                              : tag_match(fpr_cdb, e_new.opd[j].tag) ? fpr_cdb.data : 32'bx;
+		assign e_new.opd[j].data  = fpr_read[j].data;
 	end
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		assign e_updated[i].valid   = e[i].valid;

@@ -4,7 +4,7 @@ module register_file #(
 ) (
 	input logic clk,
 	inst_if inst,
-	output cdb_t read[1:0],
+	output cdb_t arch_read[1:0],
 	input logic issue,
 	input logic[ROB_WIDTH-1:0] issue_tag,
 	input logic commit,
@@ -20,8 +20,8 @@ module register_file #(
 	};
 	cdb_t registers[2**REG_WIDTH-1:0] = '{default: register_init};
 
-	assign read[0] = registers[inst.r1];
-	assign read[1] = registers[inst.r2];
+	assign arch_read[0] = registers[inst.r1];
+	assign arch_read[1] = registers[inst.r2];
 
 	for (genvar i=0; i<2**REG_WIDTH; i++) begin
 		always_ff @(posedge clk) begin

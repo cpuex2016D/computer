@@ -80,11 +80,9 @@ module lw_sw #(
 	assign agu_e_new.lw_or_sw = inst.op[2] ? SW : LW;
 	assign agu_e_new.pointer  = agu_e_new.lw_or_sw==LW ? lw_count - lw_dispatch :
 	                            agu_e_new.lw_or_sw==SW ? sw_count - sw_commit   : 2'bx;
-	assign agu_e_new.opd.valid = gpr_read[0].valid ? tag_match(gpr_cdb, agu_e_new.opd.tag) ? 1'bx : 1
-	                                               : tag_match(gpr_cdb, agu_e_new.opd.tag) ?    1 : 0;
+	assign agu_e_new.opd.valid = gpr_read[0].valid;
 	assign agu_e_new.opd.tag   = gpr_read[0].tag;
-	assign agu_e_new.opd.data  = gpr_read[0].valid ? tag_match(gpr_cdb, agu_e_new.opd.tag) ? {DATA_MEM_WIDTH{1'bx}}           : gpr_read[0].data[DATA_MEM_WIDTH-1:0]
-	                                               : tag_match(gpr_cdb, agu_e_new.opd.tag) ? gpr_cdb.data[DATA_MEM_WIDTH-1:0] : {DATA_MEM_WIDTH{1'bx}};
+	assign agu_e_new.opd.data  = gpr_read[0].data[DATA_MEM_WIDTH-1:0];
 	for (genvar j=0; j<N_AGU_ENTRY; j++) begin
 		assign agu_e_updated[j].valid    = agu_e[j].valid;
 		assign agu_e_updated[j].lw_or_sw = agu_e[j].lw_or_sw;
@@ -170,16 +168,12 @@ module lw_sw #(
 	assign sw_e_new.addr_valid    = inst.op[0];
 	assign sw_e_new.addr          = inst.op[0] ? inst.c_swi : DATA_MEM_WIDTH'($signed(inst.c_sw));
 	assign sw_e_new.gpr_or_fpr    = inst.op[1] ? FPR : GPR;
-	assign sw_e_new.sw_data.valid = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_e_new.sw_data.tag) ? 1'bx : 1
-	                                                                             : tag_match(gpr_cdb, sw_e_new.sw_data.tag) ?    1 : 0 :
-	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_e_new.sw_data.tag) ? 1'bx : 1
-	                                                                             : tag_match(fpr_cdb, sw_e_new.sw_data.tag) ?    1 : 0 : 1'bx;
+	assign sw_e_new.sw_data.valid = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].valid :
+	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].valid : 1'bx;
 	assign sw_e_new.sw_data.tag   = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].tag :
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].tag : {ROB_WIDTH{1'bx}};
-	assign sw_e_new.sw_data.data  = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].valid ? tag_match(gpr_cdb, sw_e_new.sw_data.tag) ? 32'bx        : gpr_read[1].data
-	                                                                             : tag_match(gpr_cdb, sw_e_new.sw_data.tag) ? gpr_cdb.data : 32'bx            :
-	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].valid ? tag_match(fpr_cdb, sw_e_new.sw_data.tag) ? 32'bx        : fpr_read[1].data
-	                                                                             : tag_match(fpr_cdb, sw_e_new.sw_data.tag) ? fpr_cdb.data : 32'bx            : 32'bx;
+	assign sw_e_new.sw_data.data  = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].data :
+	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].data : 32'bx;
 	for (genvar j=0; j<N_SW_ENTRY; j++) begin
 		wire agu_dispatch_to_me = agu_dispatch&&agu_e[agu_dispatched].lw_or_sw==SW&&agu_e[agu_dispatched].pointer==j;
 		cdb_t cdb;

@@ -209,22 +209,26 @@ module top #(
 	cdb_t     gpr_arch_read[1:0];
 	rob_entry gpr_rob_read[1:0];
 	cdb_t     gpr_read[1:0];
-	logic[ROB_WIDTH-1:0] gpr_read_tag[1:0];
 	for (genvar i=0; i<2; i++) begin
-		assign gpr_read_tag[i]   = gpr_arch_read[i].tag;
-		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid;
+		assign gpr_read[i].valid = gpr_arch_read[i].valid ||
+		                           (gpr_rob_read[i].valid ? tag_match(gpr_cdb, gpr_arch_read[i].tag) ? 1'bx : 1
+		                                                  : tag_match(gpr_cdb, gpr_arch_read[i].tag) ?    1 : 0);
 		assign gpr_read[i].tag   = gpr_arch_read[i].tag;
-		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data : gpr_rob_read[i].data;
+		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data :
+		                           gpr_rob_read[i].valid ? tag_match(gpr_cdb, gpr_arch_read[i].tag) ? 32'bx        : gpr_rob_read[i].data
+		                                                 : tag_match(gpr_cdb, gpr_arch_read[i].tag) ? gpr_cdb.data : 32'bx;
 	end
 	cdb_t     fpr_arch_read[1:0];
 	rob_entry fpr_rob_read[1:0];
 	cdb_t     fpr_read[1:0];
-	logic[ROB_WIDTH-1:0] fpr_read_tag[1:0];
 	for (genvar i=0; i<2; i++) begin
-		assign fpr_read_tag[i]   = fpr_arch_read[i].tag;
-		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid;
+		assign fpr_read[i].valid = fpr_arch_read[i].valid ||
+		                           (fpr_rob_read[i].valid ? tag_match(fpr_cdb, fpr_arch_read[i].tag) ? 1'bx : 1
+		                                                  : tag_match(fpr_cdb, fpr_arch_read[i].tag) ?    1 : 0);
 		assign fpr_read[i].tag   = fpr_arch_read[i].tag;
-		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data : fpr_rob_read[i].data;
+		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data :
+		                           fpr_rob_read[i].valid ? tag_match(fpr_cdb, fpr_arch_read[i].tag) ? 32'bx        : fpr_rob_read[i].data
+		                                                 : tag_match(fpr_cdb, fpr_arch_read[i].tag) ? fpr_cdb.data : 32'bx;
 	end
 
 	//cdb
@@ -420,7 +424,7 @@ module top #(
 	register_file gpr_arch(
 		.clk,
 		.inst,
-		.read(gpr_arch_read),
+		.arch_read(gpr_arch_read),
 		.issue(issue_gpr),
 		.issue_tag(gpr_issue_tag),
 		.commit(commit_req_gpr.valid && commit_req_gpr.ready),
@@ -432,7 +436,7 @@ module top #(
 	register_file fpr_arch(
 		.clk,
 		.inst,
-		.read(fpr_arch_read),
+		.arch_read(fpr_arch_read),
 		.issue(issue_fpr),
 		.issue_tag(fpr_issue_tag),
 		.commit(commit_req_fpr.valid && commit_req_fpr.ready),
@@ -443,8 +447,8 @@ module top #(
 	);
 	rob gpr_rob(
 		.clk,
-		.read_tag(gpr_read_tag),
-		.read(gpr_rob_read),
+		.arch_read(gpr_arch_read),
+		.rob_read(gpr_rob_read),
 		.cdb(gpr_cdb),
 		.issue(issue_gpr),
 		.inst,
@@ -457,8 +461,8 @@ module top #(
 	);
 	rob fpr_rob(
 		.clk,
-		.read_tag(fpr_read_tag),
-		.read(fpr_rob_read),
+		.arch_read(fpr_arch_read),
+		.rob_read(fpr_rob_read),
 		.cdb(fpr_cdb),
 		.issue(issue_fpr),
 		.inst,

@@ -40,11 +40,9 @@ module itof #(
 
 	assign e_new.valid     = issue_req.valid;
 	assign e_new.tag       = fpr_issue_tag;
-	assign e_new.opd.valid = gpr_read[0].valid ? tag_match(gpr_cdb, e_new.opd.tag) ? 1'bx : 1
-	                                           : tag_match(gpr_cdb, e_new.opd.tag) ?    1 : 0;
+	assign e_new.opd.valid = gpr_read[0].valid;
 	assign e_new.opd.tag   = gpr_read[0].tag;
-	assign e_new.opd.data  = gpr_read[0].valid ? tag_match(gpr_cdb, e_new.opd.tag) ? 32'bx        : gpr_read[0].data
-	                                           : tag_match(gpr_cdb, e_new.opd.tag) ? gpr_cdb.data : 32'bx;
+	assign e_new.opd.data  = gpr_read[0].data;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		assign e_updated[i].valid     = e[i].valid;
 		assign e_updated[i].tag       = e[i].tag;

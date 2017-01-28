@@ -66,21 +66,13 @@ module b #(
 	assign cmp_e_new.cmp_type = inst.op[4] ? inst.op[3] ? CMP_LE : CMP_E
 	                                       : inst.op[2] ? CMP_FLE : CMP_FZ;
 	cdb_t read[1:0];
-	cdb_t cdb;
 	assign read = cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE ? gpr_read : fpr_read;
-	assign cdb  = cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE ? gpr_cdb  : fpr_cdb ;
-	assign cmp_e_new.opd[0].valid = (read[0].valid ? tag_match(cdb, cmp_e_new.opd[0].tag) ? 1'bx : 1
-	                                               : tag_match(cdb, cmp_e_new.opd[0].tag) ?    1 : 0);
+	assign cmp_e_new.opd[0].valid = read[0].valid;
 	assign cmp_e_new.opd[0].tag   = read[0].tag;
-	assign cmp_e_new.opd[0].data  = (read[0].valid ? tag_match(cdb, cmp_e_new.opd[0].tag) ? 32'bx    : read[0].data
-	                                               : tag_match(cdb, cmp_e_new.opd[0].tag) ? cdb.data : 32'bx);
-	assign cmp_e_new.opd[1].valid = (cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE) && inst.op[2] ||
-	                                (read[1].valid ? tag_match(cdb, cmp_e_new.opd[1].tag) ? 1'bx : 1
-	                                               : tag_match(cdb, cmp_e_new.opd[1].tag) ?    1 : 0);
+	assign cmp_e_new.opd[0].data  = read[0].data;
+	assign cmp_e_new.opd[1].valid = (cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE) && inst.op[2] || read[1].valid;
 	assign cmp_e_new.opd[1].tag   = read[1].tag;
-	assign cmp_e_new.opd[1].data  = (cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE) && inst.op[2] ? 32'($signed(inst.c_cmp)) :
-	                                (read[1].valid ? tag_match(cdb, cmp_e_new.opd[1].tag) ? 32'bx    : read[1].data
-	                                               : tag_match(cdb, cmp_e_new.opd[1].tag) ? cdb.data : 32'bx);
+	assign cmp_e_new.opd[1].data  = (cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE) && inst.op[2] ? 32'($signed(inst.c_cmp)) : read[1].data;
 	for (genvar i=0; i<N_B_ENTRY; i++) begin
 		assign cmp_e_updated[i].cmp_type = cmp_e[i].cmp_type;
 		cdb_t cdb;
