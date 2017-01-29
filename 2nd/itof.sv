@@ -54,7 +54,9 @@ module itof #(
 	wire dispatched = e[0].opd.valid ? 0 : 1;  //dispatchされるエントリの番号
 	assign fpr_cdb_req.valid = e[0].valid&&e[0].opd.valid ||
 	                           e[1].valid&&e[1].opd.valid;
-	assign tag = e[dispatched].tag;
+	itof_entry e_dispatched;
+	assign e_dispatched = e[dispatched];
+	assign tag = e_dispatched.tag;
 	wire dispatch = fpr_cdb_req.valid && fpr_cdb_req.ready;
 	assign issue_req.ready = dispatch || !e[N_ENTRY-1].valid;
 
