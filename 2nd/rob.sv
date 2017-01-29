@@ -43,16 +43,18 @@ module rob #(
 				commit_pointer <= commit_pointer + 1;
 			end
 		end
-
-		if (cdb.valid) begin
-			rob[cdb.tag].valid <= 1;
-			rob[cdb.tag].data <= cdb.data;
-		end
-		if (issue && !(cdb.valid && cdb.tag==issue_pointer)) begin  //in命令ではissueと同時にcdbにデータが流れる
-			rob[issue_pointer].valid <= 0;
-		end
-		if (issue) begin
-			rob[issue_pointer].arch_num <= inst.r0;
+	end
+	for (genvar i=0; i<2**ROB_WIDTH; i++) begin
+		always_ff @(posedge clk) begin
+			if (tag_match(cdb, i)) begin
+				rob[i].valid <= 1;
+				rob[i].data <= cdb.data;
+			end else if (issue && i==issue_pointer) begin  //in命令ではissueと同時にcdbにデータが流れる
+				rob[i].valid <= 0;
+			end
+			if (issue && i==issue_pointer) begin
+				rob[i].arch_num <= inst.r0;
+			end
 		end
 	end
 endmodule
