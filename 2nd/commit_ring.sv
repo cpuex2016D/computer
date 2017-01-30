@@ -17,7 +17,7 @@ module commit_ring #(
 	logic[COMMIT_RING_WIDTH-1:0] issue_pointer = 0;
 	logic[COMMIT_RING_WIDTH-1:0] commit_pointer = 0;
 
-	assign issue_req.ready = issue_pointer + 1 != commit_pointer;
+	assign issue_req.ready = COMMIT_RING_WIDTH'(issue_pointer+1) != commit_pointer;
 	assign commit_req_gpr.valid = entry[commit_pointer]==COMMIT_GPR ||
 	                              entry[commit_pointer]==COMMIT_GPR_IN;
 	assign commit_req_fpr.valid = entry[commit_pointer]==COMMIT_FPR ||
