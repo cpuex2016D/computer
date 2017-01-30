@@ -212,6 +212,7 @@ module top #(
 	//read
 	cdb_t     gpr_arch_read[1:0];
 	rob_entry gpr_rob_read[1:0];
+	cdb_t     gpr_cdb;
 	cdb_t     gpr_read[1:0];
 	for (genvar i=0; i<2; i++) begin
 		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || tag_match(gpr_cdb, gpr_arch_read[i].tag);
@@ -220,6 +221,7 @@ module top #(
 	end
 	cdb_t     fpr_arch_read[1:0];
 	rob_entry fpr_rob_read[1:0];
+	cdb_t     fpr_cdb;
 	cdb_t     fpr_read[1:0];
 	for (genvar i=0; i<2; i++) begin
 		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid || tag_match(fpr_cdb, fpr_arch_read[i].tag);
@@ -287,7 +289,6 @@ module top #(
 		                       gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? GPR_CDB_LW :
 		                       gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_MOV;
 	end
-	cdb_t gpr_cdb;
 	assign gpr_cdb.valid = gpr_cdb_rsv[0].valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
 	assign gpr_cdb.tag   = gpr_cdb_rsv[0].valid ? gpr_cdb_rsv[0].tag : gpr_issue_tag;
 	assign gpr_cdb.data  = !gpr_cdb_rsv[0].valid ? result_in :
@@ -376,7 +377,6 @@ module top #(
 		fpr_cdb_rsv[0].unit <= fpr_cdb_rsv[1].valid                         ? fpr_cdb_rsv[1].unit :
 		                       fpr_cdb_req_lw.valid && fpr_cdb_req_lw.ready ? FPR_CDB_LW : FPR_CDB_FMOV;
 	end
-	cdb_t fpr_cdb;
 	assign fpr_cdb.valid = fpr_cdb_rsv[0].valid || fpr_cdb_req_in.valid&&fpr_cdb_req_in.ready;
 	assign fpr_cdb.tag   = fpr_cdb_rsv[0].valid ? fpr_cdb_rsv[0].tag : fpr_issue_tag;
 	assign fpr_cdb.data  = !fpr_cdb_rsv[0].valid ? result_in :
