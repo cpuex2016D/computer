@@ -214,17 +214,19 @@ module top #(
 	rob_entry gpr_rob_read[1:0];
 	cdb_t     gpr_read[1:0];
 	for (genvar i=0; i<2; i++) begin
-		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || tag_match(gpr_cdb, gpr_arch_read[i].tag);
+		wire gpr_read_tag_match = tag_match(gpr_cdb, gpr_arch_read[i].tag);
+		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || gpr_read_tag_match;
 		assign gpr_read[i].tag   = gpr_arch_read[i].tag;
-		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data : tag_match(gpr_cdb, gpr_arch_read[i].tag) ? gpr_cdb.data : gpr_rob_read[i].data;
+		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data : gpr_read_tag_match ? gpr_cdb.data : gpr_rob_read[i].data;
 	end
 	cdb_t     fpr_arch_read[1:0];
 	rob_entry fpr_rob_read[1:0];
 	cdb_t     fpr_read[1:0];
 	for (genvar i=0; i<2; i++) begin
-		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid || tag_match(fpr_cdb, fpr_arch_read[i].tag);
+		wire fpr_read_tag_match = tag_match(fpr_cdb, fpr_arch_read[i].tag);
+		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid || fpr_read_tag_match;
 		assign fpr_read[i].tag   = fpr_arch_read[i].tag;
-		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data : tag_match(fpr_cdb, fpr_arch_read[i].tag) ? fpr_cdb.data : fpr_rob_read[i].data;
+		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data : fpr_read_tag_match ? fpr_cdb.data : fpr_rob_read[i].data;
 	end
 
 	//cdb
