@@ -53,12 +53,16 @@ module top #(
 	assign LED[6:0] = pc;
 
 	//mode
+	logic sw_w = 0;
+	logic sw_e = 0;
 	mode_t mode = LOAD;
 	mode_t next_mode;
-	assign next_mode = SW_W ? LOAD : SW_E ? EXEC : mode;
+	assign next_mode = sw_w ? LOAD : sw_e ? EXEC : mode;
 	wire mode_change = next_mode != mode;
 	logic mode_changed;
 	always_ff @(posedge clk) begin
+		sw_w <= SW_W;
+		sw_e <= SW_E;
 		mode <= next_mode;
 		mode_changed <= mode_change;
 	end
