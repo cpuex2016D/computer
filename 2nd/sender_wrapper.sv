@@ -23,7 +23,7 @@ module sender_wrapper #(
 	logic[OUT_BUFFER_WIDTH-1:0] in_pointer = 0;
 	logic[OUT_BUFFER_WIDTH-1:0] out_pointer = 0;
 
-	assign ready = in_pointer + 1 != out_pointer;
+	assign ready = OUT_BUFFER_WIDTH'(in_pointer+1) != out_pointer;
 	assign sender_valid = in_pointer != out_pointer;
 	assign sender_in = buffer[out_pointer];
 
