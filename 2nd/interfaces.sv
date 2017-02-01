@@ -35,18 +35,3 @@ interface req_if;
 	logic valid;
 	logic ready;
 endinterface
-
-//TODO delete
-interface unit_if;
-	inst_if inst();
-	cdb_t read[1:0];
-	logic[ROB_WIDTH-1:0] issue_tag;
-	cdb_t cdb;
-	req_if issue_req();
-	req_if cdb_req();
-	req_if commit_req();
-	struct {
-		logic[ROB_WIDTH-1:0] tag;
-		logic[31:0] data;
-	} result;
-endinterface
