@@ -126,8 +126,11 @@ module top #(
 	                         issue_req_out.valid        && !issue_req_out.ready        ||
 	                         issue_req_jal.valid        && !issue_req_jal.ready        ||
 	                         issue_req_b.valid          && !issue_req_b.ready));
-	wire prediction = 1;
-	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction ? pc : inst.c_j;
+	logic[PATTERN_WIDTH-1:0] pattern_begin;
+	logic[PATTERN_WIDTH-1:0] pattern_end;
+	logic[1:0] prediction_begin;
+	logic[1:0] prediction_end;
+	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
 	logic failure;
 	logic[INST_MEM_WIDTH-1:0] return_addr;
@@ -140,7 +143,12 @@ module top #(
 		.mode,
 		.pc,
 		.inst,
-		.prediction,
+		.pattern_begin,
+		.pattern_end,
+		.prediction_begin,
+		.prediction_end,
+		.failure,
+		.commit_b(commit_req_b.valid && commit_req_b.ready),
 		.reset,
 		.addr_on_failure(addr_on_failure_out),
 		.return_addr
@@ -620,11 +628,12 @@ module top #(
 		.issue_req_b,
 		.issue_req_jal,
 		.commit_req(commit_req_b),
-		.prediction,
-		//.pattern_in,
+		.prediction_begin,
+		.pattern_begin,
 		.addr_on_failure_in,
 		.failure,
-		//.patterm_out,
+		.prediction_end,
+		.pattern_end,
 		.addr_on_failure_out,
 		.reset,
 		.pc,

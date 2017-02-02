@@ -54,8 +54,10 @@ module top_tb;
 
 		top.pc <= 0;
 		top.inst_mem.inst_mem <= '{default: 0};
+		top.inst_mem.pht      <= '{default: 0};
 
 		fd = $fopen("../../../program_fib_text", "rb");
+//		fd = $fopen("../../../program_init_text", "rb");
 //		fd = $fopen("../../../../program_init_text", "rb");
 		#10;
 		forever begin

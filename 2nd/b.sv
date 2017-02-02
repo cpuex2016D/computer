@@ -13,7 +13,8 @@ typedef struct {
 	cdb_t opd[1:0];
 } cmp_entry;
 typedef struct {
-	logic prediction_or_failure;
+	logic failure;
+	logic[1:0] prediction;
 	logic[PATTERN_WIDTH-1:0] pattern;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure;
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer;
@@ -35,11 +36,12 @@ module b #(
 	req_if issue_req_b,
 	req_if issue_req_jal,
 	req_if commit_req,
-	input logic prediction,
-	input logic[PATTERN_WIDTH-1:0] pattern_in,
+	input logic[1:0] prediction_begin,
+	input logic[PATTERN_WIDTH-1:0] pattern_begin,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure_in,
 	output logic failure,
-	output logic[PATTERN_WIDTH-1:0] pattern_out,
+	output logic[1:0] prediction_end,
+	output logic[PATTERN_WIDTH-1:0] pattern_end,
 	output logic[INST_MEM_WIDTH-1:0] addr_on_failure_out,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] pc,
@@ -119,10 +121,11 @@ module b #(
 	wire b_issue = issue_req_b.valid && issue_req_b.ready;
 
 	//b
-	assign b_e_new.prediction_or_failure = prediction;
-	assign b_e_new.pattern               = pattern_in;
-	assign b_e_new.addr_on_failure       = addr_on_failure_in;
-	assign b_e_new.stack_pointer         = stack_pointer;
+	assign b_e_new.failure         = 0;
+	assign b_e_new.prediction      = prediction_begin;
+	assign b_e_new.pattern         = pattern_begin;
+	assign b_e_new.addr_on_failure = addr_on_failure_in;
+	assign b_e_new.stack_pointer   = stack_pointer;
 	always_comb begin
 		if (commit) begin
 			b_e_moved[0] <= b_count>=2 ? b_e[1] : b_e_new;
@@ -141,15 +144,17 @@ module b #(
 	end
 	for (genvar i=0; i<N_B_ENTRY; i++) begin
 		always_ff @(posedge clk) begin
-			b_e[i].prediction_or_failure <= b_e_moved[i].prediction_or_failure ^ (dispatch && dispatch_to-commit==i && cmp_result);
-			b_e[i].pattern               <= b_e_moved[i].pattern;
-			b_e[i].addr_on_failure       <= b_e_moved[i].addr_on_failure;
-			b_e[i].stack_pointer         <= b_e_moved[i].stack_pointer;
+			b_e[i].failure         <= b_e_moved[i].failure || (dispatch && dispatch_to-commit==i && cmp_result!=b_e_moved[i].prediction[1]);
+			b_e[i].prediction      <= b_e_moved[i].prediction;
+			b_e[i].pattern         <= b_e_moved[i].pattern;
+			b_e[i].addr_on_failure <= b_e_moved[i].addr_on_failure;
+			b_e[i].stack_pointer   <= b_e_moved[i].stack_pointer;
 		end
 	end
 
-	assign failure             = b_e[0].prediction_or_failure;  //commitまで使われないという仮定で書いている(commit前はinvalidかもしれない)
-	assign pattern_out         = b_e[0].pattern;
+	assign failure             = b_e[0].failure;
+	assign prediction_end      = b_e[0].prediction;
+	assign pattern_end         = b_e[0].pattern;
 	assign addr_on_failure_out = b_e[0].addr_on_failure;
 
 	//backup
