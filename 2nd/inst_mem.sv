@@ -10,7 +10,7 @@ module inst_mem #(
 	input mode_t mode,
 	output logic[INST_MEM_WIDTH-1:0] pc = 0,
 	inst_if inst,
-	input prediction,
+	input logic prediction,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
 	input logic[INST_MEM_WIDTH-1:0] return_addr
