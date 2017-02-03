@@ -1,33 +1,10 @@
 `include "common.vh"
 
-module top #(
-	parameter RECEIVER_PERIOD = 646,
-	//300MHz
-	//  300000000/115200/2 = 1302.0833333333333
-	//  1302 - 10 = 1292
-	//200MHz
-	//  1292/1.5 = 861.3333333333334
-	//180MHz
-	//  1292*0.6 = 775.1999999999999
-	//150MHz
-	//	1292/2 = 646
-	parameter SENDER_PERIOD = 1292
-	//100MHz
-	//	1292/3 = 430.6666666666667
-	//300MHz
-	//  300000000/115200 = 2604.1666666666665
-	//  2604 - 20 = 2584
-	//200MHz
-	//  2584/1.5 = 1722.6666666666667
-	//180MHz
-	//  2584*0.6 = 1550.3999999999999
-	//150MHz
-	//	2584/2 = 1292
-	//100MHz
-	//	2584/3 = 861.3333333333334
+module core #(
+	parameter RECEIVER_PERIOD = "hoge",
+	parameter SENDER_PERIOD = "hoge"
 ) (
-	input logic CLK_P,
-	input logic CLK_N,
+	input logic clk,
 	input logic UART_RX,
 	output logic UART_TX,
 	input logic SW_W,
@@ -35,7 +12,6 @@ module top #(
 	output logic[7:0] LED
 );
 	////////////////////
-	//clk
 	//LED
 	//mode
 	//IO
@@ -46,11 +22,6 @@ module top #(
 	//commit
 	//unit
 	////////////////////
-
-	//clk
-	logic clk;
-	//IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
-	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
 	//LED
 	assign LED[7] = mode==EXEC;
