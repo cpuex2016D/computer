@@ -31,7 +31,7 @@ module core #(
 	mode_t mode = LOAD;
 	mode_t next_mode;
 	logic mode_change;
-	logic mode_changed;
+	logic mode_changed = 0;
 	logic exec;
 
 	//IO
@@ -341,6 +341,11 @@ module core #(
 	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid;
 	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
 	assign gpr_cdb_req_in.ready      = !gpr_cdb_rsv[0].valid;
+	for (genvar i=0; i<3; i++) begin
+		initial begin
+			gpr_cdb_rsv[i].valid <= 0;
+		end
+	end
 	always_ff @(posedge clk) begin
 		gpr_cdb_rsv[2].valid <= reset ? 0 : gpr_cdb_req_ftoi.valid && gpr_cdb_req_ftoi.ready;
 		gpr_cdb_rsv[1].valid <= reset ? 0 : gpr_cdb_rsv[2].valid;
@@ -371,6 +376,11 @@ module core #(
 	assign fpr_cdb_req_lw.ready         = !fpr_cdb_rsv[1].valid;
 	assign fpr_cdb_req_fmov.ready       = !fpr_cdb_rsv[1].valid && !fpr_cdb_req_lw.valid;
 	assign fpr_cdb_req_in.ready         = !fpr_cdb_rsv[0].valid;
+	for (genvar i=0; i<14; i++) begin
+		initial begin
+			fpr_cdb_rsv[i].valid <= 0;
+		end
+	end
 	always_ff @(posedge clk) begin
 		fpr_cdb_rsv[13].valid <= reset ? 0 : fpr_cdb_req_fdiv_fsqrt.valid && fpr_cdb_req_fdiv_fsqrt.ready;
 		fpr_cdb_rsv[12].valid <= reset ? 0 : fpr_cdb_rsv[13].valid;
