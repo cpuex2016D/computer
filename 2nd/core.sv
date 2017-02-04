@@ -24,24 +24,15 @@ module core #(
 	////////////////////
 
 	//LED
-	assign LED[7] = mode==EXEC;
-	assign LED[6:0] = pc;
 
 	//mode
 	logic sw_w = 0;
 	logic sw_e = 0;
 	mode_t mode = LOAD;
 	mode_t next_mode;
-	assign next_mode = sw_w ? LOAD : sw_e ? EXEC : mode;
-	wire mode_change = next_mode != mode;
+	logic mode_change;
 	logic mode_changed;
-	always_ff @(posedge clk) begin
-		sw_w <= SW_W;
-		sw_e <= SW_E;
-		mode <= next_mode;
-		mode_changed <= mode_change;
-	end
-	wire exec = mode==EXEC && !mode_changed;  //EXECモードの最初の1クロックは命令フェッチのために待つ
+	logic exec;
 
 	//IO
 	logic[31:0] receiver_out;
@@ -50,83 +41,19 @@ module core #(
 	logic[7:0] sender_in;
 	logic sender_valid;
 	logic sender_ready;
-	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
-		.clk,
-		.in(UART_RX),
-		.ready(mode==LOAD || receiver_ready),
-		.out(receiver_out),
-		.valid(receiver_valid),
-		.reset,
-		.in_count
-	);
-	sender_wrapper #(SENDER_PERIOD) sender_wrapper(
-		.clk,
-		.in(sender_in),
-		.valid(sender_valid),
-		.out(UART_TX),
-		.ready(sender_ready)
-	);
 
 	//inst_mem
 	logic[INST_MEM_WIDTH-1:0] pc;
 	inst_if inst();
-	wire inst_mem_stall = (mode==LOAD && !receiver_valid) ||
-	                      (exec &&
-	                        ((inst.is_add_sub    ||
-	                          inst.is_mov        ||
-	                          inst.is_fadd_fsub  ||
-	                          inst.is_fmul       ||
-	                          inst.is_fdiv_fsqrt ||
-	                          inst.is_fmov       ||
-	                          inst.is_lw_sw      ||
-	                          inst.is_ftoi       ||
-	                          inst.is_itof       ||
-	                          inst.is_in         ||
-	                          inst.is_out        ||
-	                          inst.is_b            ) && !issue_req_commit_ring.ready ||
-	                         issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
-	                         issue_req_mov.valid        && !issue_req_mov.ready        ||
-	                         issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
-	                         issue_req_fmul.valid       && !issue_req_fmul.ready       ||
-	                         issue_req_fdiv_fsqrt.valid && !issue_req_fdiv_fsqrt.ready ||
-	                         issue_req_fmov.valid       && !issue_req_fmov.ready       ||
-	                         issue_req_lw_sw.valid      && !issue_req_lw_sw.ready      ||
-	                         issue_req_ftoi.valid       && !issue_req_ftoi.ready       ||
-	                         issue_req_itof.valid       && !issue_req_itof.ready       ||
-	                         issue_req_in.valid         && !issue_req_in.ready         ||
-	                         issue_req_out.valid        && !issue_req_out.ready        ||
-	                         issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
-	                         issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
-	                         issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
-	                         issue_req_jal.valid        && !issue_req_jal.ready        ||
-	                         issue_req_b.valid          && !issue_req_b.ready));
+	logic inst_mem_stall;
 	logic[PATTERN_WIDTH-1:0] pattern_begin;
 	logic[PATTERN_WIDTH-1:0] pattern_end;
 	logic[1:0] prediction_begin;
 	logic[1:0] prediction_end;
-	wire[INST_MEM_WIDTH-1:0] addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
+	logic[INST_MEM_WIDTH-1:0] addr_on_failure_in;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure_out;
 	logic failure;
 	logic[INST_MEM_WIDTH-1:0] return_addr;
-	inst_mem inst_mem(
-		.clk,
-		.inst_in(receiver_out),
-		.we(mode==LOAD && receiver_valid),
-		.reset_pc(mode_change),
-		.stall(inst_mem_stall),
-		.mode,
-		.pc,
-		.inst,
-		.pattern_begin,
-		.pattern_end,
-		.prediction_begin,
-		.prediction_end,
-		.failure,
-		.commit_b(commit_req_b.valid && commit_req_b.ready),
-		.reset,
-		.addr_on_failure(addr_on_failure_out),
-		.return_addr
-	);
 
 	//issue
 	req_if issue_req_commit_ring();
@@ -146,78 +73,16 @@ module core #(
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
 	logic[ROB_WIDTH-1:0] fpr_issue_tag;
-	assign issue_req_add_sub.valid    = exec && issue_req_commit_ring.ready && inst.is_add_sub;
-	assign issue_req_mov.valid        = exec && issue_req_commit_ring.ready && inst.is_mov;
-	assign issue_req_fadd_fsub.valid  = exec && issue_req_commit_ring.ready && inst.is_fadd_fsub;
-	assign issue_req_fmul.valid       = exec && issue_req_commit_ring.ready && inst.is_fmul;
-	assign issue_req_fdiv_fsqrt.valid = exec && issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
-	assign issue_req_fmov.valid       = exec && issue_req_commit_ring.ready && inst.is_fmov;
-	assign issue_req_lw_sw.valid      = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
-	assign issue_req_ftoi.valid       = exec && issue_req_commit_ring.ready && inst.is_ftoi;
-	assign issue_req_itof.valid       = exec && issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = exec && issue_req_commit_ring.ready && inst.is_in;
-	assign issue_req_out.valid        = exec && issue_req_commit_ring.ready && inst.is_out;
-	for (genvar i=0; i<N_ACC; i++) begin
-		assign issue_req_acc[i].valid   = exec && inst.is_acc && inst.r0[i];
-	end
-	assign issue_req_jal.valid        = exec && inst.is_jal;
-	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
 	commit_ring_entry issue_type;
-	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
-	                    inst.is_mov ? COMMIT_GPR :
-	                    inst.is_fadd_fsub ? COMMIT_FPR :
-	                    inst.is_fmul ? COMMIT_FPR :
-	                    inst.is_fdiv_fsqrt ? COMMIT_FPR :
-	                    inst.is_fmov ? COMMIT_FPR :
-	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
-	                    inst.is_ftoi ? COMMIT_GPR :
-	                    inst.is_itof ? COMMIT_FPR :
-	                    inst.is_in ? COMMIT_GPR_IN :
-	                    inst.is_out ? COMMIT_OUT :
-	                    inst.is_b ? COMMIT_B : COMMIT_X;
-	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
-	                                     issue_req_mov.valid        && issue_req_mov.ready        ||
-	                                     issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
-	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
-	                                     issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
-	                                     issue_req_fmov.valid       && issue_req_fmov.ready       ||
-	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      ||
-	                                     issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
-	                                     issue_req_itof.valid       && issue_req_itof.ready       ||
-	                                     issue_req_in.valid         && issue_req_in.ready         ||
-	                                     issue_req_out.valid        && issue_req_out.ready        ||
-	                                     issue_req_b.valid          && issue_req_b.ready;
-	wire issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
-	                 issue_req_mov.valid        && issue_req_mov.ready        ||
-	                 issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
-	                 issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
-	                 issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==0;
-	wire issue_fpr = issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
-	                 issue_req_fmul.valid       && issue_req_fmul.ready       ||
-	                 issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
-	                 issue_req_fmov.valid       && issue_req_fmov.ready       ||
-	                 issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
-	                 issue_req_itof.valid       && issue_req_itof.ready       ||
-	                 issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
+	logic issue_gpr;
+	logic issue_fpr;
 	//read
 	cdb_t     gpr_arch_read[1:0];
 	rob_entry gpr_rob_read[1:0];
-	cdb_t     gpr_cdb;
 	cdb_t     gpr_read[1:0];
-	for (genvar i=0; i<2; i++) begin
-		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || tag_match(gpr_cdb, gpr_arch_read[i].tag);
-		assign gpr_read[i].tag   = gpr_arch_read[i].tag;
-		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data : tag_match(gpr_cdb, gpr_arch_read[i].tag) ? gpr_cdb.data : gpr_rob_read[i].data;
-	end
 	cdb_t     fpr_arch_read[1:0];
 	rob_entry fpr_rob_read[1:0];
-	cdb_t     fpr_cdb;
 	cdb_t     fpr_read[1:0];
-	for (genvar i=0; i<2; i++) begin
-		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid || tag_match(fpr_cdb, fpr_arch_read[i].tag);
-		assign fpr_read[i].tag   = fpr_arch_read[i].tag;
-		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data : tag_match(fpr_cdb, fpr_arch_read[i].tag) ? fpr_cdb.data : fpr_rob_read[i].data;
-	end
 
 	//cdb
 	logic[ROB_WIDTH-1:0] tag_add_sub;
@@ -246,11 +111,6 @@ module core #(
 	req_if gpr_cdb_req_lw();
 	req_if gpr_cdb_req_ftoi();
 	req_if gpr_cdb_req_in();
-	assign gpr_cdb_req_ftoi.ready    = 1;
-	assign gpr_cdb_req_lw.ready      = !gpr_cdb_rsv[1].valid;
-	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid;
-	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
-	assign gpr_cdb_req_in.ready      = !gpr_cdb_rsv[0].valid;
 	typedef enum logic[1:0] {
 		GPR_CDB_ADD_SUB,
 		GPR_CDB_MOV,
@@ -263,6 +123,224 @@ module core #(
 		gpr_unit_t unit;
 	} gpr_cdb_rsv_t;
 	gpr_cdb_rsv_t gpr_cdb_rsv[2:0];
+	cdb_t gpr_cdb;
+	//fpr_cdb
+	req_if fpr_cdb_req_fadd_fsub();
+	req_if fpr_cdb_req_fmul();
+	req_if fpr_cdb_req_fdiv_fsqrt();
+	logic  fpr_cdb_req_is_fsqrt;
+	req_if fpr_cdb_req_fmov();
+	req_if fpr_cdb_req_lw();
+	req_if fpr_cdb_req_itof();
+	req_if fpr_cdb_req_in();
+	typedef enum logic[2:0] {
+		FPR_CDB_FDIV,
+		FPR_CDB_FSQRT,
+		FPR_CDB_FADD_FSUB,
+		FPR_CDB_FMUL,
+		FPR_CDB_ITOF,
+		FPR_CDB_LW,
+		FPR_CDB_FMOV = 3'b11x
+	} fpr_unit_t;
+	typedef struct {
+		logic valid;
+		logic[ROB_WIDTH-1:0] tag;
+		fpr_unit_t unit;
+	} fpr_cdb_rsv_t;
+	fpr_cdb_rsv_t fpr_cdb_rsv[13:0];
+	cdb_t fpr_cdb;
+
+	//commit
+	req_if commit_req_gpr();
+	req_if commit_req_fpr();
+	req_if commit_req_sw();
+	req_if commit_req_out();
+	req_if commit_req_b();
+	logic[REG_WIDTH-1:0] gpr_commit_arch_num;
+	logic[REG_WIDTH-1:0] fpr_commit_arch_num;
+	logic[ROB_WIDTH-1:0] gpr_commit_tag;
+	logic[ROB_WIDTH-1:0] fpr_commit_tag;
+	logic[31:0] gpr_commit_data;
+	logic[31:0] fpr_commit_data;
+	logic reset;
+	logic[COMMIT_RING_WIDTH-1:0] in_count;
+
+	//unit
+	logic[$clog2(N_B_ENTRY):0] b_count_next;
+	req_if acc_req[N_ACC-1:0]();
+	logic[31:0] acc_data[N_ACC-1:0];
+
+
+
+	////////////////////
+	//LED
+	//mode
+	//IO
+	//inst_mem
+	//issue
+	//read
+	//cdb
+	//commit
+	//unit
+	////////////////////
+
+	//LED
+	assign LED[7] = mode==EXEC;
+	assign LED[6:0] = pc;
+
+	//mode
+	assign next_mode = sw_w ? LOAD : sw_e ? EXEC : mode;
+	assign mode_change = next_mode != mode;
+	always_ff @(posedge clk) begin
+		sw_w <= SW_W;
+		sw_e <= SW_E;
+		mode <= next_mode;
+		mode_changed <= mode_change;
+	end
+	assign exec = mode==EXEC && !mode_changed;  //EXECモードの最初の1クロックは命令フェッチのために待つ
+
+	//IO
+	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
+		.clk,
+		.in(UART_RX),
+		.ready(mode==LOAD || receiver_ready),
+		.out(receiver_out),
+		.valid(receiver_valid),
+		.reset,
+		.in_count
+	);
+	sender_wrapper #(SENDER_PERIOD) sender_wrapper(
+		.clk,
+		.in(sender_in),
+		.valid(sender_valid),
+		.out(UART_TX),
+		.ready(sender_ready)
+	);
+
+	//inst_mem
+	assign inst_mem_stall = (mode==LOAD && !receiver_valid) ||
+	                        (exec &&
+	                          ((inst.is_add_sub    ||
+	                            inst.is_mov        ||
+	                            inst.is_fadd_fsub  ||
+	                            inst.is_fmul       ||
+	                            inst.is_fdiv_fsqrt ||
+	                            inst.is_fmov       ||
+	                            inst.is_lw_sw      ||
+	                            inst.is_ftoi       ||
+	                            inst.is_itof       ||
+	                            inst.is_in         ||
+	                            inst.is_out        ||
+	                            inst.is_b            ) && !issue_req_commit_ring.ready ||
+	                           issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
+	                           issue_req_mov.valid        && !issue_req_mov.ready        ||
+	                           issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
+	                           issue_req_fmul.valid       && !issue_req_fmul.ready       ||
+	                           issue_req_fdiv_fsqrt.valid && !issue_req_fdiv_fsqrt.ready ||
+	                           issue_req_fmov.valid       && !issue_req_fmov.ready       ||
+	                           issue_req_lw_sw.valid      && !issue_req_lw_sw.ready      ||
+	                           issue_req_ftoi.valid       && !issue_req_ftoi.ready       ||
+	                           issue_req_itof.valid       && !issue_req_itof.ready       ||
+	                           issue_req_in.valid         && !issue_req_in.ready         ||
+	                           issue_req_out.valid        && !issue_req_out.ready        ||
+	                           issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
+	                           issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
+	                           issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
+	                           issue_req_jal.valid        && !issue_req_jal.ready        ||
+	                           issue_req_b.valid          && !issue_req_b.ready));
+	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
+	inst_mem inst_mem(
+		.clk,
+		.inst_in(receiver_out),
+		.we(mode==LOAD && receiver_valid),
+		.reset_pc(mode_change),
+		.stall(inst_mem_stall),
+		.mode,
+		.pc,
+		.inst,
+		.pattern_begin,
+		.pattern_end,
+		.prediction_begin,
+		.prediction_end,
+		.failure,
+		.commit_b(commit_req_b.valid && commit_req_b.ready),
+		.reset,
+		.addr_on_failure(addr_on_failure_out),
+		.return_addr
+	);
+
+	//issue
+	assign issue_req_add_sub.valid    = exec && issue_req_commit_ring.ready && inst.is_add_sub;
+	assign issue_req_mov.valid        = exec && issue_req_commit_ring.ready && inst.is_mov;
+	assign issue_req_fadd_fsub.valid  = exec && issue_req_commit_ring.ready && inst.is_fadd_fsub;
+	assign issue_req_fmul.valid       = exec && issue_req_commit_ring.ready && inst.is_fmul;
+	assign issue_req_fdiv_fsqrt.valid = exec && issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
+	assign issue_req_fmov.valid       = exec && issue_req_commit_ring.ready && inst.is_fmov;
+	assign issue_req_lw_sw.valid      = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
+	assign issue_req_ftoi.valid       = exec && issue_req_commit_ring.ready && inst.is_ftoi;
+	assign issue_req_itof.valid       = exec && issue_req_commit_ring.ready && inst.is_itof;
+	assign issue_req_in.valid         = exec && issue_req_commit_ring.ready && inst.is_in;
+	assign issue_req_out.valid        = exec && issue_req_commit_ring.ready && inst.is_out;
+	for (genvar i=0; i<N_ACC; i++) begin
+		assign issue_req_acc[i].valid   = exec && inst.is_acc && inst.r0[i];
+	end
+	assign issue_req_jal.valid        = exec && inst.is_jal;
+	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
+	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
+	                    inst.is_mov ? COMMIT_GPR :
+	                    inst.is_fadd_fsub ? COMMIT_FPR :
+	                    inst.is_fmul ? COMMIT_FPR :
+	                    inst.is_fdiv_fsqrt ? COMMIT_FPR :
+	                    inst.is_fmov ? COMMIT_FPR :
+	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
+	                    inst.is_ftoi ? COMMIT_GPR :
+	                    inst.is_itof ? COMMIT_FPR :
+	                    inst.is_in ? COMMIT_GPR_IN :
+	                    inst.is_out ? COMMIT_OUT :
+	                    inst.is_b ? COMMIT_B : COMMIT_X;
+	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                                     issue_req_mov.valid        && issue_req_mov.ready        ||
+	                                     issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
+	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
+	                                     issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
+	                                     issue_req_fmov.valid       && issue_req_fmov.ready       ||
+	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      ||
+	                                     issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
+	                                     issue_req_itof.valid       && issue_req_itof.ready       ||
+	                                     issue_req_in.valid         && issue_req_in.ready         ||
+	                                     issue_req_out.valid        && issue_req_out.ready        ||
+	                                     issue_req_b.valid          && issue_req_b.ready;
+	assign issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                   issue_req_mov.valid        && issue_req_mov.ready        ||
+	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
+	                   issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
+	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==0;
+	assign issue_fpr = issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
+	                   issue_req_fmul.valid       && issue_req_fmul.ready       ||
+	                   issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
+	                   issue_req_fmov.valid       && issue_req_fmov.ready       ||
+	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
+	                   issue_req_itof.valid       && issue_req_itof.ready       ||
+	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
+	//read
+	for (genvar i=0; i<2; i++) begin
+		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || tag_match(gpr_cdb, gpr_arch_read[i].tag);
+		assign gpr_read[i].tag   = gpr_arch_read[i].tag;
+		assign gpr_read[i].data  = gpr_arch_read[i].valid ? gpr_arch_read[i].data : tag_match(gpr_cdb, gpr_arch_read[i].tag) ? gpr_cdb.data : gpr_rob_read[i].data;
+	end
+	for (genvar i=0; i<2; i++) begin
+		assign fpr_read[i].valid = fpr_arch_read[i].valid || fpr_rob_read[i].valid || tag_match(fpr_cdb, fpr_arch_read[i].tag);
+		assign fpr_read[i].tag   = fpr_arch_read[i].tag;
+		assign fpr_read[i].data  = fpr_arch_read[i].valid ? fpr_arch_read[i].data : tag_match(fpr_cdb, fpr_arch_read[i].tag) ? fpr_cdb.data : fpr_rob_read[i].data;
+	end
+
+	//cdb
+	//gpr_cdb
+	assign gpr_cdb_req_ftoi.ready    = 1;
+	assign gpr_cdb_req_lw.ready      = !gpr_cdb_rsv[1].valid;
+	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid;
+	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
+	assign gpr_cdb_req_in.ready      = !gpr_cdb_rsv[0].valid;
 	always_ff @(posedge clk) begin
 		gpr_cdb_rsv[2].valid <= reset ? 0 : gpr_cdb_req_ftoi.valid && gpr_cdb_req_ftoi.ready;
 		gpr_cdb_rsv[1].valid <= reset ? 0 : gpr_cdb_rsv[2].valid;
@@ -286,14 +364,6 @@ module core #(
 	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw      :
 	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub : result_mov;
 	//fpr_cdb
-	req_if fpr_cdb_req_fadd_fsub();
-	req_if fpr_cdb_req_fmul();
-	req_if fpr_cdb_req_fdiv_fsqrt();
-	logic  fpr_cdb_req_is_fsqrt;
-	req_if fpr_cdb_req_fmov();
-	req_if fpr_cdb_req_lw();
-	req_if fpr_cdb_req_itof();
-	req_if fpr_cdb_req_in();
 	assign fpr_cdb_req_fdiv_fsqrt.ready = 1;
 	assign fpr_cdb_req_fadd_fsub.ready  = !fpr_cdb_rsv[6].valid;
 	assign fpr_cdb_req_fmul.ready       = !fpr_cdb_rsv[4].valid;
@@ -301,21 +371,6 @@ module core #(
 	assign fpr_cdb_req_lw.ready         = !fpr_cdb_rsv[1].valid;
 	assign fpr_cdb_req_fmov.ready       = !fpr_cdb_rsv[1].valid && !fpr_cdb_req_lw.valid;
 	assign fpr_cdb_req_in.ready         = !fpr_cdb_rsv[0].valid;
-	typedef enum logic[2:0] {
-		FPR_CDB_FDIV,
-		FPR_CDB_FSQRT,
-		FPR_CDB_FADD_FSUB,
-		FPR_CDB_FMUL,
-		FPR_CDB_ITOF,
-		FPR_CDB_LW,
-		FPR_CDB_FMOV = 3'b11x
-	} fpr_unit_t;
-	typedef struct {
-		logic valid;
-		logic[ROB_WIDTH-1:0] tag;
-		fpr_unit_t unit;
-	} fpr_cdb_rsv_t;
-	fpr_cdb_rsv_t fpr_cdb_rsv[13:0];
 	always_ff @(posedge clk) begin
 		fpr_cdb_rsv[13].valid <= reset ? 0 : fpr_cdb_req_fdiv_fsqrt.valid && fpr_cdb_req_fdiv_fsqrt.ready;
 		fpr_cdb_rsv[12].valid <= reset ? 0 : fpr_cdb_rsv[13].valid;
@@ -378,17 +433,6 @@ module core #(
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw        : result_fmov;
 
 	//commit
-	req_if commit_req_gpr();
-	req_if commit_req_fpr();
-	req_if commit_req_sw();
-	req_if commit_req_out();
-	req_if commit_req_b();
-	logic[REG_WIDTH-1:0] gpr_commit_arch_num;
-	logic[REG_WIDTH-1:0] fpr_commit_arch_num;
-	logic[ROB_WIDTH-1:0] gpr_commit_tag;
-	logic[ROB_WIDTH-1:0] fpr_commit_tag;
-	logic[31:0] gpr_commit_data;
-	logic[31:0] fpr_commit_data;
 	commit_ring commit_ring(
 		.clk,
 		.issue_type,
@@ -401,15 +445,11 @@ module core #(
 		.reset,
 		.in_count
 	);
-	wire reset = commit_req_b.valid && commit_req_b.ready && failure;
-	logic[COMMIT_RING_WIDTH-1:0] in_count;
+	assign reset = commit_req_b.valid && commit_req_b.ready && failure;
 
 
 
 	//unit
-	logic[$clog2(N_B_ENTRY):0] b_count_next;
-	req_if acc_req[N_ACC-1:0]();
-	logic[31:0] acc_data[N_ACC-1:0];
 	register_file #(0) gpr_arch(
 		.clk,
 		.inst,
