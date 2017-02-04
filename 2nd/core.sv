@@ -31,8 +31,7 @@ module core #(
 	mode_t mode = LOAD;
 	mode_t next_mode;
 	logic mode_change;
-	logic mode_changed = 0;
-	logic exec;
+	logic exec = 0;
 
 	//IO
 	logic[31:0] receiver_out;
@@ -195,9 +194,8 @@ module core #(
 		sw_w <= SW_W;
 		sw_e <= SW_E;
 		mode <= next_mode;
-		mode_changed <= mode_change;
+		exec <= mode==EXEC && next_mode==EXEC;  //EXECモードの最初の1クロックは命令フェッチのために待つ
 	end
-	assign exec = mode==EXEC && !mode_changed;  //EXECモードの最初の1クロックは命令フェッチのために待つ
 
 	//IO
 	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
