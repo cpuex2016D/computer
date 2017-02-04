@@ -1,6 +1,5 @@
 `include "common.vh"
 
-localparam N_B_ENTRY = 4;
 localparam N_BACKUP_ENTRY = 4;
 typedef enum logic[1:0] {
 	CMP_FZ,
@@ -39,6 +38,7 @@ module b #(
 	input logic[1:0] prediction_begin,
 	input logic[PATTERN_WIDTH-1:0] pattern_begin,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure_in,
+	output logic[$clog2(N_B_ENTRY):0] b_count_next,
 	output logic failure,
 	output logic[1:0] prediction_end,
 	output logic[PATTERN_WIDTH-1:0] pattern_end,
@@ -139,6 +139,7 @@ module b #(
 			b_e_moved[3] <= b_count>=4 ? b_e[3] : b_e_new;
 		end
 	end
+	assign b_count_next = b_count - commit;  //resetもissueもされない場合の、b_countの次の値
 	always_ff @(posedge clk) begin
 		b_count <= reset ? 0 : b_count - commit + b_issue;
 	end

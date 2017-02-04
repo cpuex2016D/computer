@@ -95,6 +95,9 @@ module core #(
 	                         issue_req_itof.valid       && !issue_req_itof.ready       ||
 	                         issue_req_in.valid         && !issue_req_in.ready         ||
 	                         issue_req_out.valid        && !issue_req_out.ready        ||
+	                         issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
+	                         issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
+	                         issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
 	                         issue_req_jal.valid        && !issue_req_jal.ready        ||
 	                         issue_req_b.valid          && !issue_req_b.ready));
 	logic[PATTERN_WIDTH-1:0] pattern_begin;
@@ -138,6 +141,7 @@ module core #(
 	req_if issue_req_itof();
 	req_if issue_req_in();
 	req_if issue_req_out();
+	req_if issue_req_acc[N_ACC-1:0]();
 	req_if issue_req_jal();
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
@@ -153,6 +157,9 @@ module core #(
 	assign issue_req_itof.valid       = exec && issue_req_commit_ring.ready && inst.is_itof;
 	assign issue_req_in.valid         = exec && issue_req_commit_ring.ready && inst.is_in;
 	assign issue_req_out.valid        = exec && issue_req_commit_ring.ready && inst.is_out;
+	for (genvar i=0; i<N_ACC; i++) begin
+		assign issue_req_acc[i].valid   = exec && inst.is_acc && inst.r0[i];
+	end
 	assign issue_req_jal.valid        = exec && inst.is_jal;
 	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
 	commit_ring_entry issue_type;
@@ -400,7 +407,10 @@ module core #(
 
 
 	//unit
-	register_file gpr_arch(
+	logic[$clog2(N_B_ENTRY):0] b_count_next;
+	req_if acc_req[N_ACC-1:0]();
+	logic[31:0] acc_data[N_ACC-1:0];
+	register_file #(0) gpr_arch(
 		.clk,
 		.inst,
 		.arch_read(gpr_arch_read),
@@ -412,7 +422,7 @@ module core #(
 		.commit_data(gpr_commit_data),
 		.reset
 	);
-	register_file fpr_arch(
+	register_file #(1) fpr_arch(
 		.clk,
 		.inst,
 		.arch_read(fpr_arch_read),
@@ -422,7 +432,9 @@ module core #(
 		.commit_arch_num(fpr_commit_arch_num),
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
-		.reset
+		.reset,
+		.acc_req,
+		.acc_data
 	);
 	rob gpr_rob(
 		.clk,
@@ -589,6 +601,19 @@ module core #(
 		.sender_in,
 		.reset
 	);
+	for (genvar i=0; i<N_ACC; i++) begin
+		acc acc(
+			.clk,
+			.fpr_read,
+			.fpr_cdb,
+			.b_count_next,
+			.b_commit(commit_req_b.valid && commit_req_b.ready),
+			.issue_req(issue_req_acc[i]),
+			.acc_req(acc_req[i]),
+			.acc_data(acc_data[i]),
+			.failure
+		);
+	end
 	b b(
 		.clk,
 		.inst,
@@ -602,6 +627,7 @@ module core #(
 		.prediction_begin,
 		.pattern_begin,
 		.addr_on_failure_in,
+		.b_count_next,
 		.failure,
 		.prediction_end,
 		.pattern_end,
