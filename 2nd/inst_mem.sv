@@ -39,7 +39,7 @@ module inst_mem #(
 			inst_addr <= pc;
 		end
 	end
-	wire[PATTERN_WIDTH-1:0] pattern = inst_addr ^ {gh, {(PATTERN_WIDTH-GH_WIDTH){1'b0}}};
+	wire[PATTERN_WIDTH-1:0] pattern = inst_addr ^ {gh, {PATTERN_WIDTH-GH_WIDTH{1'b0}}};
 	wire taken = prediction_end[1] ^ failure;
 	logic[1:0] prediction_updated;
 	assign prediction_updated[1] = prediction_end[1] ^ (!prediction_end[0] && failure);
