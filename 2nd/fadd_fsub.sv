@@ -4,14 +4,14 @@ typedef struct {
 	logic valid;
 	logic[ROB_WIDTH-1:0] tag;
 	logic is_fsub;
-	cdb_t opd[1:0];
+	cdb_t opd[2];
 } fadd_fsub_entry;
 
 module fadd_fsub #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t fpr_read[1:0],
+	input cdb_t fpr_read[2],
 	input cdb_t fpr_cdb,
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	req_if issue_req,
@@ -38,8 +38,8 @@ module fadd_fsub #(
 			}
 		}
 	};
-	fadd_fsub_entry e[N_ENTRY-1:0];  //0から順に詰める
-	fadd_fsub_entry e_updated[N_ENTRY-1:0];
+	fadd_fsub_entry e[N_ENTRY];  //0から順に詰める
+	fadd_fsub_entry e_updated[N_ENTRY];
 	fadd_fsub_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin

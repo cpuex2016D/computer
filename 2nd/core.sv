@@ -67,7 +67,7 @@ module core #(
 	req_if issue_req_itof();
 	req_if issue_req_in();
 	req_if issue_req_out();
-	req_if issue_req_acc[N_ACC-1:0]();
+	req_if issue_req_acc[N_ACC]();
 	req_if issue_req_jal();
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
@@ -76,12 +76,12 @@ module core #(
 	logic issue_gpr;
 	logic issue_fpr;
 	//read
-	cdb_t     gpr_arch_read[1:0];
-	rob_entry gpr_rob_read[1:0];
-	cdb_t     gpr_read[1:0];
-	cdb_t     fpr_arch_read[1:0];
-	rob_entry fpr_rob_read[1:0];
-	cdb_t     fpr_read[1:0];
+	cdb_t     gpr_arch_read[2];
+	rob_entry gpr_rob_read[2];
+	cdb_t     gpr_read[2];
+	cdb_t     fpr_arch_read[2];
+	rob_entry fpr_rob_read[2];
+	cdb_t     fpr_read[2];
 
 	//cdb
 	logic[ROB_WIDTH-1:0] tag_add_sub;
@@ -121,7 +121,7 @@ module core #(
 		logic[ROB_WIDTH-1:0] tag;
 		gpr_unit_t unit;
 	} gpr_cdb_rsv_t;
-	gpr_cdb_rsv_t gpr_cdb_rsv[2:0];
+	gpr_cdb_rsv_t gpr_cdb_rsv[3];
 	cdb_t gpr_cdb;
 	//fpr_cdb
 	req_if fpr_cdb_req_fadd_fsub();
@@ -146,7 +146,7 @@ module core #(
 		logic[ROB_WIDTH-1:0] tag;
 		fpr_unit_t unit;
 	} fpr_cdb_rsv_t;
-	fpr_cdb_rsv_t fpr_cdb_rsv[13:0];
+	fpr_cdb_rsv_t fpr_cdb_rsv[14];
 	cdb_t fpr_cdb;
 
 	//commit
@@ -166,8 +166,8 @@ module core #(
 
 	//unit
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
-	req_if acc_req[N_ACC-1:0]();
-	logic[31:0] acc_data[N_ACC-1:0];
+	req_if acc_req[N_ACC]();
+	logic[31:0] acc_data[N_ACC];
 
 
 

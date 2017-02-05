@@ -19,7 +19,7 @@ module receiver_wrapper #(
 		.out(receiver_out),
 		.valid(receiver_valid)
 	);
-	(* ram_style = "distributed" *) logic[31:0] buffer[2**IN_BUFFER_WIDTH-1:0];
+	(* ram_style = "distributed" *) logic[31:0] buffer[2**IN_BUFFER_WIDTH];
 	logic[IN_BUFFER_WIDTH-1:0] in_pointer = 0;
 	logic[IN_BUFFER_WIDTH-1:0] out_pointer = 0;
 	logic[1:0] in_pointer_sub = 0;

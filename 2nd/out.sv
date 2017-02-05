@@ -9,7 +9,7 @@ typedef struct {
 module out #(
 ) (
 	input logic clk,
-	input cdb_t gpr_read[1:0],
+	input cdb_t gpr_read[2],
 	input cdb_t gpr_cdb,
 	req_if issue_req,
 	req_if commit_req,
@@ -20,8 +20,8 @@ module out #(
 );
 	localparam N_ENTRY = 4;
 	logic[$clog2(N_ENTRY):0] count = 0;
-	out_entry entry[N_ENTRY-1:0];
-	out_entry entry_updated[N_ENTRY-1:0];
+	out_entry entry[N_ENTRY];
+	out_entry entry_updated[N_ENTRY];
 	out_entry entry_new;
 
 	assign entry_new.valid = gpr_read[0].valid;

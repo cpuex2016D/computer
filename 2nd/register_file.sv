@@ -5,7 +5,7 @@ module register_file #(
 ) (
 	input logic clk,
 	inst_if inst,
-	output cdb_t arch_read[1:0],
+	output cdb_t arch_read[2],
 	input logic issue,
 	input logic[ROB_WIDTH-1:0] issue_tag,
 	input logic commit,
@@ -13,8 +13,8 @@ module register_file #(
 	input logic[ROB_WIDTH-1:0] commit_tag,
 	input logic[31:0] commit_data,
 	input logic reset,
-	req_if acc_req[N_ACC-1:0],
-	input logic[31:0] acc_data[N_ACC-1:0]
+	req_if acc_req[N_ACC],
+	input logic[31:0] acc_data[N_ACC]
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t register_init = '{
@@ -22,9 +22,9 @@ module register_file #(
 		tag: {ROB_WIDTH{1'bx}},
 		data: 0
 	};
-	cdb_t registers[2**REG_WIDTH-1:0] = '{default: register_init};
-	logic[$clog2(LATENCY_FADD):0] fadd_count[N_ACC-1:0] = '{default: 0};
-	logic[31:0] fadd_result[N_ACC-1:0];
+	cdb_t registers[2**REG_WIDTH] = '{default: register_init};
+	logic[$clog2(LATENCY_FADD):0] fadd_count[N_ACC] = '{default: 0};
+	logic[31:0] fadd_result[N_ACC];
 
 	assign arch_read[0] = registers[inst.r1];
 	assign arch_read[1] = registers[inst.r2];

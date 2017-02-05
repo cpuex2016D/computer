@@ -9,7 +9,7 @@ typedef struct {
 module acc #(
 ) (
 	input logic clk,
-	input cdb_t fpr_read[1:0],
+	input cdb_t fpr_read[2],
 	input cdb_t fpr_cdb,
 	input logic[$clog2(N_B_ENTRY):0] b_count_next,
 	input logic b_commit,

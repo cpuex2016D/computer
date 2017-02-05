@@ -19,7 +19,7 @@ module sender_wrapper #(
 		.out,
 		.ready(sender_ready)
 	);
-	(* ram_style = "distributed" *) logic[7:0] buffer[2**OUT_BUFFER_WIDTH-1:0];
+	(* ram_style = "distributed" *) logic[7:0] buffer[2**OUT_BUFFER_WIDTH];
 	logic[OUT_BUFFER_WIDTH-1:0] in_pointer = 0;
 	logic[OUT_BUFFER_WIDTH-1:0] out_pointer = 0;
 

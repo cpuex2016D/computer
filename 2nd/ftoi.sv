@@ -10,7 +10,7 @@ module ftoi #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t fpr_read[1:0],
+	input cdb_t fpr_read[2],
 	input cdb_t fpr_cdb,
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
@@ -29,8 +29,8 @@ module ftoi #(
 			data: 32'bx
 		}
 	};
-	ftoi_entry e[N_ENTRY-1:0];  //0から順に詰める
-	ftoi_entry e_updated[N_ENTRY-1:0];
+	ftoi_entry e[N_ENTRY];  //0から順に詰める
+	ftoi_entry e_updated[N_ENTRY];
 	ftoi_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin

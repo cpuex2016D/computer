@@ -13,7 +13,7 @@ module commit_ring #(
 	input logic reset,
 	output logic[COMMIT_RING_WIDTH-1:0] in_count
 );
-	commit_ring_entry entry[2**COMMIT_RING_WIDTH-1:0] = '{default: COMMIT_NULL};
+	commit_ring_entry entry[2**COMMIT_RING_WIDTH] = '{default: COMMIT_NULL};
 	logic[COMMIT_RING_WIDTH-1:0] issue_pointer = 0;
 	logic[COMMIT_RING_WIDTH-1:0] commit_pointer = 0;
 

@@ -17,7 +17,7 @@ module fmov #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t fpr_read[1:0],
+	input cdb_t fpr_read[2],
 	input cdb_t fpr_cdb,
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	req_if issue_req,
@@ -38,8 +38,8 @@ module fmov #(
 			data: 32'bx
 		}
 	};
-	fmov_entry e[N_ENTRY-1:0];  //0から順に詰める
-	fmov_entry e_updated[N_ENTRY-1:0];
+	fmov_entry e[N_ENTRY];  //0から順に詰める
+	fmov_entry e_updated[N_ENTRY];
 	fmov_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin
@@ -64,7 +64,7 @@ module fmov #(
 		assign e_updated[i].opd.data  = e[i].opd.valid ? e[i].opd.data : modify_sign(e[i].is_fneg, e[i].is_fabs, fpr_cdb.data);
 	end
 
-	logic dispatchable[2:0];
+	logic dispatchable[3];
 	assign dispatchable[0] = e_updated[0].valid&&e_updated[0].opd.valid;
 	assign dispatchable[1] = e_updated[1].valid&&e_updated[1].opd.valid;
 	assign dispatchable[2] = e_new       .valid&&e_new       .opd.valid;

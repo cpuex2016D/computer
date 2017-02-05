@@ -3,8 +3,8 @@
 module rob #(
 ) (
 	input logic clk,
-	input cdb_t arch_read[1:0],
-	output rob_entry rob_read[1:0],
+	input cdb_t arch_read[2],
+	output rob_entry rob_read[2],
 	input cdb_t cdb,
 	input logic issue,
 	inst_if inst,
@@ -15,7 +15,7 @@ module rob #(
 	output logic[31:0] commit_data,
 	input logic reset
 );
-	rob_entry rob[2**ROB_WIDTH-1:0];
+	rob_entry rob[2**ROB_WIDTH];
 	logic[ROB_WIDTH-1:0] issue_pointer = 0;
 	logic[ROB_WIDTH-1:0] commit_pointer = 0;
 

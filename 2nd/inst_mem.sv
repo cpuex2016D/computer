@@ -20,8 +20,8 @@ module inst_mem #(
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
 	input logic[INST_MEM_WIDTH-1:0] return_addr
 );
-	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH-1:0];
-	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH-1:0];
+	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH];
+	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH];
 	logic[GH_WIDTH-1:0] gh = 0;
 	initial begin
 		inst.bits <= 0;

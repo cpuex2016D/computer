@@ -3,14 +3,14 @@
 typedef struct {
 	logic valid;
 	logic[ROB_WIDTH-1:0] tag;
-	cdb_t opd[1:0];
+	cdb_t opd[2];
 } fmul_entry;
 
 module fmul #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t fpr_read[1:0],
+	input cdb_t fpr_read[2],
 	input cdb_t fpr_cdb,
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	req_if issue_req,
@@ -36,8 +36,8 @@ module fmul #(
 			}
 		}
 	};
-	fmul_entry e[N_ENTRY-1:0];  //0から順に詰める
-	fmul_entry e_updated[N_ENTRY-1:0];
+	fmul_entry e[N_ENTRY];  //0から順に詰める
+	fmul_entry e_updated[N_ENTRY];
 	fmul_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin

@@ -9,7 +9,7 @@ typedef enum logic[1:0] {
 } cmp_type_t;
 typedef struct {
 	cmp_type_t cmp_type;
-	cdb_t opd[1:0];
+	cdb_t opd[2];
 } cmp_entry;
 typedef struct {
 	logic failure;
@@ -28,8 +28,8 @@ module b #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t gpr_read[1:0],
-	input cdb_t fpr_read[1:0],
+	input cdb_t gpr_read[2],
+	input cdb_t fpr_read[2],
 	input cdb_t gpr_cdb,
 	input cdb_t fpr_cdb,
 	req_if issue_req_b,
@@ -50,24 +50,24 @@ module b #(
 	logic[$clog2(N_B_ENTRY):0] cmp_count = 0;
 	logic[$clog2(N_B_ENTRY):0] b_count = 0;
 	logic[$clog2(N_BACKUP_ENTRY):0] backup_count = 0;
-	cmp_entry cmp_e[N_B_ENTRY-1:0];
-	cmp_entry cmp_e_updated[N_B_ENTRY-1:0];
+	cmp_entry cmp_e[N_B_ENTRY];
+	cmp_entry cmp_e_updated[N_B_ENTRY];
 	cmp_entry cmp_e_new;
-	b_entry b_e[N_B_ENTRY-1:0];
-	b_entry b_e_moved[N_B_ENTRY-1:0];
+	b_entry b_e[N_B_ENTRY];
+	b_entry b_e_moved[N_B_ENTRY];
 	b_entry b_e_new;
-	backup_entry backup_e[N_BACKUP_ENTRY-1:0];
-	backup_entry backup_e_updated[N_BACKUP_ENTRY-1:0];
+	backup_entry backup_e[N_BACKUP_ENTRY];
+	backup_entry backup_e_updated[N_BACKUP_ENTRY];
 	backup_entry backup_e_new;
-	logic[INST_MEM_WIDTH-1:0] addr_stack[2**ADDR_STACK_WIDTH-1:0];
-	logic[INST_MEM_WIDTH-1:0] addr_stack_next[2**ADDR_STACK_WIDTH-1:0];
+	logic[INST_MEM_WIDTH-1:0] addr_stack[2**ADDR_STACK_WIDTH];
+	logic[INST_MEM_WIDTH-1:0] addr_stack_next[2**ADDR_STACK_WIDTH];
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer = 2**ADDR_STACK_WIDTH-1;  //スタックのトップ(戻り番地がある位置)を指す (スタックのトップの1つ上を指すという実装も考えられる?)
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer_next;
 
 	//cmp
 	assign cmp_e_new.cmp_type = inst.op[4] ? inst.op[3] ? CMP_LE : CMP_E
 	                                       : inst.op[2] ? CMP_FLE : CMP_FZ;
-	cdb_t read[1:0];
+	cdb_t read[2];
 	assign read = cmp_e_new.cmp_type==CMP_E || cmp_e_new.cmp_type==CMP_LE ? gpr_read : fpr_read;
 	assign cmp_e_new.opd[0].valid = read[0].valid;
 	assign cmp_e_new.opd[0].tag   = read[0].tag;
@@ -171,7 +171,7 @@ module b #(
 	assign issue_req_jal.ready = backup_count < N_BACKUP_ENTRY || commit&&backup_e[0].pointer==1;
 	wire jal_issue = issue_req_jal.valid && issue_req_jal.ready;
 
-	logic shift[3:0];
+	logic shift[4];
 	assign shift[0] = backup_e[0].pointer!=1;
 	assign shift[1] = backup_e[0].pointer==1 && backup_e[1].pointer!=1;
 	assign shift[2] = backup_e[0].pointer==1 && backup_e[1].pointer==1 && backup_e[2].pointer!=1;

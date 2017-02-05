@@ -30,8 +30,8 @@ module lw_sw #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t gpr_read[1:0],
-	input cdb_t fpr_read[1:0],
+	input cdb_t gpr_read[2],
+	input cdb_t fpr_read[2],
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	input cdb_t gpr_cdb,
@@ -59,15 +59,15 @@ module lw_sw #(
 	};
 	logic[1:0] lw_count = 0;
 	logic[2:0] sw_count = 0;
-	agu_entry agu_e[N_AGU_ENTRY-1:0];  //0から順に詰める
-	agu_entry agu_e_updated[N_AGU_ENTRY-1:0];
+	agu_entry agu_e[N_AGU_ENTRY];  //0から順に詰める
+	agu_entry agu_e_updated[N_AGU_ENTRY];
 	agu_entry agu_e_new;
-	lw_entry lw_e[N_LW_ENTRY-1:0];  //0から順に詰める
-	lw_entry lw_e_updated[N_LW_ENTRY-1:0];
+	lw_entry lw_e[N_LW_ENTRY];  //0から順に詰める
+	lw_entry lw_e_updated[N_LW_ENTRY];
 	lw_entry lw_e_new;
-	lw_entry lw_e_next[N_LW_ENTRY-1:0];
-	sw_entry sw_e[N_SW_ENTRY-1:0];  //0から順に詰める
-	sw_entry sw_e_updated[N_SW_ENTRY-1:0];
+	lw_entry lw_e_next[N_LW_ENTRY];
+	sw_entry sw_e[N_SW_ENTRY];  //0から順に詰める
+	sw_entry sw_e_updated[N_SW_ENTRY];
 	sw_entry sw_e_new;
 	for (genvar j=0; j<N_AGU_ENTRY; j++) begin
 		initial begin

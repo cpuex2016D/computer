@@ -6,14 +6,14 @@ typedef struct {
 	logic[ROB_WIDTH-1:0] tag;
 	add_or_sub_t add_or_sub;
 	logic sl2;
-	cdb_t opd[1:0];
+	cdb_t opd[2];
 } add_sub_entry;
 
 module add_sub #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t gpr_read[1:0],
+	input cdb_t gpr_read[2],
 	input cdb_t gpr_cdb,
 	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
 	req_if issue_req,
@@ -42,8 +42,8 @@ module add_sub #(
 		}
 	};
 	//add_sub_entry e[N_ENTRY-1:0] = '{default: e_invalid};  //この方法だと正しく初期化されない(vivadoのバグ?)
-	add_sub_entry e[N_ENTRY-1:0];  //0から順に詰める
-	add_sub_entry e_updated[N_ENTRY-1:0];
+	add_sub_entry e[N_ENTRY];  //0から順に詰める
+	add_sub_entry e_updated[N_ENTRY];
 	add_sub_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin

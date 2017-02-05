@@ -10,7 +10,7 @@ module data_mem #(
 	output logic[31:0] doutb,
 	input logic wea
 );
-	logic[31:0] data_mem[2**DATA_MEM_WIDTH-1:0];
+	logic[31:0] data_mem[2**DATA_MEM_WIDTH];
 
 	always @(posedge clka) begin
 		if (wea) begin

@@ -10,7 +10,7 @@ module itof #(
 ) (
 	input logic clk,
 	inst_if inst,
-	input cdb_t gpr_read[1:0],
+	input cdb_t gpr_read[2],
 	input cdb_t gpr_cdb,
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	req_if issue_req,
@@ -29,8 +29,8 @@ module itof #(
 			data: 32'bx
 		}
 	};
-	itof_entry e[N_ENTRY-1:0];  //0から順に詰める
-	itof_entry e_updated[N_ENTRY-1:0];
+	itof_entry e[N_ENTRY];  //0から順に詰める
+	itof_entry e_updated[N_ENTRY];
 	itof_entry e_new;
 	for (genvar i=0; i<N_ENTRY; i++) begin
 		initial begin
