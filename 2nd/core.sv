@@ -468,7 +468,8 @@ module core #(
 		.commit_arch_num(gpr_commit_arch_num),
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
-		.reset
+		.reset,
+		.acc_req  //これがないと合成できない
 	);
 	register_file #(1) fpr_arch(
 		.clk,

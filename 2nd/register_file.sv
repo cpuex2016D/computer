@@ -56,7 +56,7 @@ module register_file #(
 			for (genvar i=0; i<N_ACC; i++) begin
 				assign acc_req[i].ready = fadd_count[i]<=1;
 				always_ff @(posedge clk) begin
-					fadd_count[i] <= acc_req.valid&&acc_req.ready ? LATENCY_FADD : fadd_count[i]==0 ? 0 : fadd_count[i]-1;
+					fadd_count[i] <= acc_req[i].valid&&acc_req[i].ready ? LATENCY_FADD : fadd_count[i]==0 ? 0 : fadd_count[i]-1;
 				end
 				fadd_core fadd_core(
 					.aclk(clk),
