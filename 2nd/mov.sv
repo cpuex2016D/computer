@@ -74,7 +74,7 @@ module mov #(
 				e[1] <= e[1].valid ? e_updated[1] : e[0].valid ? e_new : e_invalid;
 			end
 		end
-		result <= dispatchable[0] ? e_updated[0].opd.data :
-		          dispatchable[1] ? e_updated[1].opd.data : e_new.opd.data;
 	end
+	assign result = dispatchable[0] ? e_updated[0].opd.data :
+	                dispatchable[1] ? e_updated[1].opd.data : e_new.opd.data;
 endmodule

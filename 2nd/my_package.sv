@@ -10,6 +10,8 @@ package my_package;
 	parameter PATTERN_WIDTH = INST_MEM_WIDTH;
 	parameter GH_WIDTH = 10;
 	parameter ADDR_STACK_WIDTH = 4;
+	parameter GC_WIDTH = 8;
+	parameter GD_WIDTH = 2;
 
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stallのみparameterizeされていない

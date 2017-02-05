@@ -32,6 +32,9 @@ module core #(
 	mode_t next_mode;
 	logic mode_change;
 	logic exec = 0;
+	logic[GC_WIDTH-1:0] gc;
+	logic[GD_WIDTH-1:0] gd;
+	req_if gc_req();
 
 	//IO
 	logic[31:0] receiver_out;
@@ -57,6 +60,7 @@ module core #(
 	//issue
 	req_if issue_req_commit_ring();
 	req_if issue_req_add_sub();
+	req_if issue_req_next();
 	req_if issue_req_mov();
 	req_if issue_req_fadd_fsub();
 	req_if issue_req_fmul();
@@ -85,6 +89,7 @@ module core #(
 
 	//cdb
 	logic[ROB_WIDTH-1:0] tag_add_sub;
+	logic[ROB_WIDTH-1:0] tag_next;
 	logic[ROB_WIDTH-1:0] tag_mov;
 	logic[ROB_WIDTH-1:0] tag_fadd_fsub;
 	logic[ROB_WIDTH-1:0] tag_fmul;
@@ -94,7 +99,9 @@ module core #(
 	logic[ROB_WIDTH-1:0] tag_ftoi;
 	logic[ROB_WIDTH-1:0] tag_itof;
 	logic[31:0] result_add_sub;
+	logic[31:0] result_next;
 	logic[31:0] result_mov;
+	logic[31:0] result_next_mov;
 	logic[31:0] result_fadd_fsub;
 	logic[31:0] result_fmul;
 	logic[31:0] result_fdiv;
@@ -106,13 +113,14 @@ module core #(
 	logic[31:0] result_in;
 	//gpr_cdb
 	req_if gpr_cdb_req_add_sub();
+	req_if gpr_cdb_req_next();
 	req_if gpr_cdb_req_mov();
 	req_if gpr_cdb_req_lw();
 	req_if gpr_cdb_req_ftoi();
 	req_if gpr_cdb_req_in();
 	typedef enum logic[1:0] {
 		GPR_CDB_ADD_SUB,
-		GPR_CDB_MOV,
+		GPR_CDB_NEXT_MOV,
 		GPR_CDB_LW,
 		GPR_CDB_FTOI
 	} gpr_unit_t;
@@ -195,7 +203,11 @@ module core #(
 		sw_e <= SW_E;
 		mode <= next_mode;
 		exec <= mode==EXEC && next_mode==EXEC;  //EXECモードの最初の1クロックは命令フェッチのために待つ
+		if (gc_req.valid && gc_req.ready) begin
+			gc <= $signed(gc) + $signed(gd);
+		end
 	end
+	//TODO gc, gd, gc_req.ready
 
 	//IO
 	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
@@ -269,6 +281,7 @@ module core #(
 
 	//issue
 	assign issue_req_add_sub.valid    = exec && issue_req_commit_ring.ready && inst.is_add_sub;
+	assign issue_req_next.valid       = exec && issue_req_commit_ring.ready && inst.is_next;
 	assign issue_req_mov.valid        = exec && issue_req_commit_ring.ready && inst.is_mov;
 	assign issue_req_fadd_fsub.valid  = exec && issue_req_commit_ring.ready && inst.is_fadd_fsub;
 	assign issue_req_fmul.valid       = exec && issue_req_commit_ring.ready && inst.is_fmul;
@@ -285,6 +298,7 @@ module core #(
 	assign issue_req_jal.valid        = exec && inst.is_jal;
 	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
+	                    inst.is_next ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :
 	                    inst.is_fadd_fsub ? COMMIT_FPR :
 	                    inst.is_fmul ? COMMIT_FPR :
@@ -297,6 +311,7 @@ module core #(
 	                    inst.is_out ? COMMIT_OUT :
 	                    inst.is_b ? COMMIT_B : COMMIT_X;
 	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                                     issue_req_next.valid       && issue_req_next.ready       ||
 	                                     issue_req_mov.valid        && issue_req_mov.ready        ||
 	                                     issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
 	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
@@ -309,6 +324,7 @@ module core #(
 	                                     issue_req_out.valid        && issue_req_out.ready        ||
 	                                     issue_req_b.valid          && issue_req_b.ready;
 	assign issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                   issue_req_next.valid       && issue_req_next.ready       ||
 	                   issue_req_mov.valid        && issue_req_mov.ready        ||
 	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
 	                   issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
@@ -333,11 +349,15 @@ module core #(
 	end
 
 	//cdb
+	always_ff @(posedge clk) begin
+		result_next_mov <= gpr_cdb_req_next.valid&&gpr_cdb_req_next.ready ? result_next : result_mov;
+	end
 	//gpr_cdb
 	assign gpr_cdb_req_ftoi.ready    = 1;
 	assign gpr_cdb_req_lw.ready      = !gpr_cdb_rsv[1].valid;
 	assign gpr_cdb_req_add_sub.ready = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid;
-	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
+	assign gpr_cdb_req_next.ready    = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid;
+	assign gpr_cdb_req_mov.ready     = !gpr_cdb_rsv[1].valid && !gpr_cdb_req_lw.valid && !gpr_cdb_req_add_sub.valid && !gpr_cdb_req_next.valid;
 	assign gpr_cdb_req_in.ready      = !gpr_cdb_rsv[0].valid;
 	for (genvar i=0; i<3; i++) begin
 		initial begin
@@ -355,17 +375,18 @@ module core #(
 		gpr_cdb_rsv[1].tag <= gpr_cdb_rsv[2].tag;
 		gpr_cdb_rsv[0].tag <= gpr_cdb_rsv[1].valid                                   ? gpr_cdb_rsv[1].tag :
 		                      gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? tag_lw :
-		                      gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? tag_add_sub : tag_mov;
+		                      gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? tag_add_sub :
+		                      gpr_cdb_req_next.valid    && gpr_cdb_req_next.ready    ? tag_next : tag_mov;
 		gpr_cdb_rsv[0].unit <= gpr_cdb_rsv[1].valid                                   ? GPR_CDB_FTOI :
 		                       gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ? GPR_CDB_LW :
-		                       gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_MOV;
+		                       gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ? GPR_CDB_ADD_SUB : GPR_CDB_NEXT_MOV;
 	end
 	assign gpr_cdb.valid = gpr_cdb_rsv[0].valid || gpr_cdb_req_in.valid&&gpr_cdb_req_in.ready;
 	assign gpr_cdb.tag   = gpr_cdb_rsv[0].valid ? gpr_cdb_rsv[0].tag : gpr_issue_tag;
 	assign gpr_cdb.data  = !gpr_cdb_rsv[0].valid ? result_in :
 	                       gpr_cdb_rsv[0].unit==GPR_CDB_FTOI    ? result_ftoi    :
 	                       gpr_cdb_rsv[0].unit==GPR_CDB_LW      ? result_lw      :
-	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub : result_mov;
+	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub : result_next_mov;
 	//fpr_cdb
 	assign fpr_cdb_req_fdiv_fsqrt.ready = 1;
 	assign fpr_cdb_req_fadd_fsub.ready  = !fpr_cdb_rsv[6].valid;
@@ -524,6 +545,19 @@ module core #(
 		.tag(tag_add_sub),
 		.result(result_add_sub),
 		.reset
+	);
+	next next(
+		.clk,
+		.gpr_issue_tag,
+		.b_count_next,
+		.b_commit(commit_req_b.valid && commit_req_b.ready),
+		.issue_req(issue_req_next),
+		.gc_req,
+		.gpr_cdb_req(gpr_cdb_req_next),
+		.gc,
+		.tag(tag_next),
+		.result(result_next),
+		.failure
 	);
 	mov mov(
 		.clk,
