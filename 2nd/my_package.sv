@@ -3,7 +3,7 @@ package my_package;
 	parameter OUT_BUFFER_WIDTH = 9;  //1バイト単位
 	parameter INST_WIDTH = 32;
 	parameter INST_MEM_WIDTH = 14;
-	parameter DATA_MEM_WIDTH = 18;
+	parameter DATA_MEM_WIDTH = 17;
 	parameter REG_WIDTH = 5;
 	parameter ROB_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
 	parameter COMMIT_RING_WIDTH = 4;  //commit_ring.in_countのみparameterizeされていない
