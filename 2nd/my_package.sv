@@ -16,6 +16,8 @@ package my_package;
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stallのみparameterizeされていない
 
+	parameter PC_INIT = 0;
+
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
 		logic valid;
 		logic[ROB_WIDTH-1:0] tag;

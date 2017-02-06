@@ -30,8 +30,6 @@ module top #(
 	input logic CLK_N,
 	input logic UART_RX,
 	output logic UART_TX,
-	input logic SW_W,
-	input logic SW_E,
 	output logic[7:0] LED
 );
 	logic clk;
@@ -45,8 +43,6 @@ module top #(
 		.clk,
 		.UART_RX,
 		.UART_TX,
-		.SW_W,
-		.SW_E,
 		.LED
 	);
 endmodule

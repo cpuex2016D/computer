@@ -7,13 +7,11 @@ module core #(
 	input logic clk,
 	input logic UART_RX,
 	output logic UART_TX,
-	input logic SW_W,
-	input logic SW_E,
 	output logic[7:0] LED
 );
 	////////////////////
 	//LED
-	//mode
+	//gc
 	//IO
 	//inst_mem
 	//issue
@@ -25,13 +23,7 @@ module core #(
 
 	//LED
 
-	//mode
-	logic sw_w = 0;
-	logic sw_e = 0;
-	mode_t mode = LOAD;
-	mode_t next_mode;
-	logic mode_change;
-	logic exec = 0;
+	//gc
 	logic[GC_WIDTH-1:0] gc;
 	logic[GD_WIDTH-1:0] gd;
 	req_if gc_req();
@@ -181,7 +173,7 @@ module core #(
 
 	////////////////////
 	//LED
-	//mode
+	//gc
 	//IO
 	//inst_mem
 	//issue
@@ -192,17 +184,10 @@ module core #(
 	////////////////////
 
 	//LED
-	assign LED[7] = mode==EXEC;
-	assign LED[6:0] = pc;
+	assign LED = pc;
 
-	//mode
-	assign next_mode = sw_w ? LOAD : sw_e ? EXEC : mode;
-	assign mode_change = next_mode != mode;
+	//gc
 	always_ff @(posedge clk) begin
-		sw_w <= SW_W;
-		sw_e <= SW_E;
-		mode <= next_mode;
-		exec <= mode==EXEC && next_mode==EXEC;  //EXECモードの最初の1クロックは命令フェッチのために待つ
 		if (gc_req.valid && gc_req.ready) begin
 			gc <= $signed(gc) + $signed(gd);
 		end
@@ -213,7 +198,7 @@ module core #(
 	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
 		.clk,
 		.in(UART_RX),
-		.ready(mode==LOAD || receiver_ready),
+		.ready(receiver_ready),
 		.out(receiver_out),
 		.valid(receiver_valid),
 		.reset,
@@ -228,44 +213,39 @@ module core #(
 	);
 
 	//inst_mem
-	assign inst_mem_stall = (mode==LOAD && !receiver_valid) ||
-	                        (exec &&
-	                          ((inst.is_add_sub    ||
-	                            inst.is_mov        ||
-	                            inst.is_fadd_fsub  ||
-	                            inst.is_fmul       ||
-	                            inst.is_fdiv_fsqrt ||
-	                            inst.is_fmov       ||
-	                            inst.is_lw_sw      ||
-	                            inst.is_ftoi       ||
-	                            inst.is_itof       ||
-	                            inst.is_in         ||
-	                            inst.is_out        ||
-	                            inst.is_b            ) && !issue_req_commit_ring.ready ||
-	                           issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
-	                           issue_req_mov.valid        && !issue_req_mov.ready        ||
-	                           issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
-	                           issue_req_fmul.valid       && !issue_req_fmul.ready       ||
-	                           issue_req_fdiv_fsqrt.valid && !issue_req_fdiv_fsqrt.ready ||
-	                           issue_req_fmov.valid       && !issue_req_fmov.ready       ||
-	                           issue_req_lw_sw.valid      && !issue_req_lw_sw.ready      ||
-	                           issue_req_ftoi.valid       && !issue_req_ftoi.ready       ||
-	                           issue_req_itof.valid       && !issue_req_itof.ready       ||
-	                           issue_req_in.valid         && !issue_req_in.ready         ||
-	                           issue_req_out.valid        && !issue_req_out.ready        ||
-	                           issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
-	                           issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
-	                           issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
-	                           issue_req_jal.valid        && !issue_req_jal.ready        ||
-	                           issue_req_b.valid          && !issue_req_b.ready));
+	assign inst_mem_stall = (inst.is_add_sub    ||
+	                         inst.is_mov        ||
+	                         inst.is_fadd_fsub  ||
+	                         inst.is_fmul       ||
+	                         inst.is_fdiv_fsqrt ||
+	                         inst.is_fmov       ||
+	                         inst.is_lw_sw      ||
+	                         inst.is_ftoi       ||
+	                         inst.is_itof       ||
+	                         inst.is_in         ||
+	                         inst.is_out        ||
+	                         inst.is_b            ) && !issue_req_commit_ring.ready ||
+	                        issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
+	                        issue_req_mov.valid        && !issue_req_mov.ready        ||
+	                        issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
+	                        issue_req_fmul.valid       && !issue_req_fmul.ready       ||
+	                        issue_req_fdiv_fsqrt.valid && !issue_req_fdiv_fsqrt.ready ||
+	                        issue_req_fmov.valid       && !issue_req_fmov.ready       ||
+	                        issue_req_lw_sw.valid      && !issue_req_lw_sw.ready      ||
+	                        issue_req_ftoi.valid       && !issue_req_ftoi.ready       ||
+	                        issue_req_itof.valid       && !issue_req_itof.ready       ||
+	                        issue_req_in.valid         && !issue_req_in.ready         ||
+	                        issue_req_out.valid        && !issue_req_out.ready        ||
+	                        issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
+	                        issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
+	                        issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
+	                        issue_req_jal.valid        && !issue_req_jal.ready        ||
+	                        issue_req_b.valid          && !issue_req_b.ready;
 	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
 	inst_mem inst_mem(
 		.clk,
-		.inst_in(receiver_out),
-		.we(mode==LOAD && receiver_valid),
-		.reset_pc(mode_change),
+		.reset_pc(0),
 		.stall(inst_mem_stall),
-		.mode,
 		.pc,
 		.inst,
 		.pattern_begin,
@@ -280,23 +260,23 @@ module core #(
 	);
 
 	//issue
-	assign issue_req_add_sub.valid    = exec && issue_req_commit_ring.ready && inst.is_add_sub;
-	assign issue_req_next.valid       = exec && issue_req_commit_ring.ready && inst.is_next;
-	assign issue_req_mov.valid        = exec && issue_req_commit_ring.ready && inst.is_mov;
-	assign issue_req_fadd_fsub.valid  = exec && issue_req_commit_ring.ready && inst.is_fadd_fsub;
-	assign issue_req_fmul.valid       = exec && issue_req_commit_ring.ready && inst.is_fmul;
-	assign issue_req_fdiv_fsqrt.valid = exec && issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
-	assign issue_req_fmov.valid       = exec && issue_req_commit_ring.ready && inst.is_fmov;
-	assign issue_req_lw_sw.valid      = exec && issue_req_commit_ring.ready && inst.is_lw_sw;
-	assign issue_req_ftoi.valid       = exec && issue_req_commit_ring.ready && inst.is_ftoi;
-	assign issue_req_itof.valid       = exec && issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = exec && issue_req_commit_ring.ready && inst.is_in;
-	assign issue_req_out.valid        = exec && issue_req_commit_ring.ready && inst.is_out;
+	assign issue_req_add_sub.valid    = issue_req_commit_ring.ready && inst.is_add_sub;
+	assign issue_req_next.valid       = issue_req_commit_ring.ready && inst.is_next;
+	assign issue_req_mov.valid        = issue_req_commit_ring.ready && inst.is_mov;
+	assign issue_req_fadd_fsub.valid  = issue_req_commit_ring.ready && inst.is_fadd_fsub;
+	assign issue_req_fmul.valid       = issue_req_commit_ring.ready && inst.is_fmul;
+	assign issue_req_fdiv_fsqrt.valid = issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
+	assign issue_req_fmov.valid       = issue_req_commit_ring.ready && inst.is_fmov;
+	assign issue_req_lw_sw.valid      = issue_req_commit_ring.ready && inst.is_lw_sw;
+	assign issue_req_ftoi.valid       = issue_req_commit_ring.ready && inst.is_ftoi;
+	assign issue_req_itof.valid       = issue_req_commit_ring.ready && inst.is_itof;
+	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in;
+	assign issue_req_out.valid        = issue_req_commit_ring.ready && inst.is_out;
 	for (genvar i=0; i<N_ACC; i++) begin
-		assign issue_req_acc[i].valid   = exec && inst.is_acc && inst.r0[i];
+		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
 	end
-	assign issue_req_jal.valid        = exec && inst.is_jal;
-	assign issue_req_b.valid          = exec && issue_req_commit_ring.ready && inst.is_b;
+	assign issue_req_jal.valid        = inst.is_jal;
+	assign issue_req_b.valid          = issue_req_commit_ring.ready && inst.is_b;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
 	                    inst.is_next ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :

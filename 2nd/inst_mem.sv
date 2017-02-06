@@ -3,12 +3,9 @@
 module inst_mem #(
 ) (
 	input logic clk,
-	input logic[INST_WIDTH-1:0] inst_in,
-	input logic we,
 	input logic reset_pc,
 	input logic stall,
-	input mode_t mode,
-	output logic[INST_MEM_WIDTH-1:0] pc = 0,
+	output logic[INST_MEM_WIDTH-1:0] pc,
 	inst_if inst,
 	output logic[PATTERN_WIDTH-1:0] pattern_begin,
 	input logic[PATTERN_WIDTH-1:0] pattern_end,
@@ -24,7 +21,8 @@ module inst_mem #(
 	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH];
 	logic[GH_WIDTH-1:0] gh = 0;
 	initial begin
-		inst.bits <= 0;
+		$readmemh("text", inst_mem);
+		inst.bits <= {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]};
 	end
 
 	logic[INST_MEM_WIDTH-1:0] inst_addr;
@@ -48,23 +46,10 @@ module inst_mem #(
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin
 			pc <= 0;
-		end else if (reset) begin
-			pc <= addr_on_failure + 1;
-		end else if (!stall) begin
-			if (mode==LOAD) begin
-				pc <= pc + 1;
-			end else if (inst.is_j || inst.is_b && prediction_begin[1]) begin
-				pc <= inst.c_j + 1;
-			end else if (inst.is_jr) begin
-				pc <= return_addr + 1;
-			end else begin
-				pc <= pc + 1;
-			end
+		end else if (!(!reset && stall)) begin
+			pc <= inst_addr + 1;
 		end
 
-		if (we) begin
-			inst_mem[pc] <= inst_in;
-		end
 		if (!(!reset && stall)) begin
 			inst.bits <= inst_mem[inst_addr];
 		end
