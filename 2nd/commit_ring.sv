@@ -10,6 +10,7 @@ module commit_ring #(
 	req_if commit_req_sw,
 	req_if commit_req_out,
 	req_if commit_req_b,
+	output logic empty,
 	input logic reset,
 	output logic[COMMIT_RING_WIDTH-1:0] in_count
 );
@@ -18,6 +19,7 @@ module commit_ring #(
 	logic[COMMIT_RING_WIDTH-1:0] commit_pointer = 0;
 
 	assign issue_req.ready = COMMIT_RING_WIDTH'(issue_pointer+1) != commit_pointer;
+	assign empty = issue_pointer==commit_pointer;
 	assign commit_req_gpr.valid = entry[commit_pointer]==COMMIT_GPR ||
 	                              entry[commit_pointer]==COMMIT_GPR_IN;
 	assign commit_req_fpr.valid = entry[commit_pointer]==COMMIT_FPR ||

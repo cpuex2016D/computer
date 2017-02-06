@@ -34,6 +34,8 @@ module b #(
 	input cdb_t fpr_cdb,
 	req_if issue_req_b,
 	req_if issue_req_jal,
+	req_if issue_req_fork,
+	req_if issue_req_end,
 	req_if commit_req,
 	input logic[1:0] prediction_begin,
 	input logic[PATTERN_WIDTH-1:0] pattern_begin,
@@ -169,7 +171,8 @@ module b #(
 	end
 
 	assign issue_req_jal.ready = backup_count < N_BACKUP_ENTRY || commit&&backup_e[0].pointer==1;
-	wire jal_issue = issue_req_jal.valid && issue_req_jal.ready;
+	wire stack_push = issue_req_jal.valid&&issue_req_jal.ready || issue_req_fork.valid&&issue_req_fork.ready;
+	wire stack_pop = inst.is_jr || issue_req_end.valid&&issue_req_end.ready;
 
 	logic shift[4];
 	assign shift[0] = backup_e[0].pointer!=1;
@@ -188,7 +191,7 @@ module b #(
 		                 backup_count>=4&&shift[3] ||
 		                 backup_count==3&&shift[2] ||
 		                 backup_count==2&&shift[1] ||
-		                 backup_count==1&&shift[0] ? 1 : 0) + (jal_issue && b_count-commit!=0);
+		                 backup_count==1&&shift[0] ? 1 : 0) + (stack_push && b_count-commit!=0);
 		if (commit) begin
 			backup_e[0] <= backup_count>=4 && shift[3] ? backup_e_updated[3] :
 			               backup_count>=3 && shift[2] ? backup_e_updated[2] :
@@ -211,8 +214,8 @@ module b #(
 	//addr_stack
 	always_comb begin
 		stack_pointer_next <= reset ? b_e[0].stack_pointer :
-		                      jal_issue  ? stack_pointer+1 :
-		                      inst.is_jr ? stack_pointer-1 : stack_pointer;
+		                      stack_push ? stack_pointer+1 :
+		                      stack_pop  ? stack_pointer-1 : stack_pointer;
 	end
 	always_ff @(posedge clk) begin
 		stack_pointer <= stack_pointer_next;
@@ -224,7 +227,7 @@ module b #(
 				                      backup_count>=2 && backup_e[1].stack_pointer==i ? backup_e[1].addr :
 				                      backup_count>=3 && backup_e[2].stack_pointer==i ? backup_e[2].addr :
 				                      backup_count>=4 && backup_e[3].stack_pointer==i ? backup_e[3].addr : addr_stack[i];
-			end else if (jal_issue && ADDR_STACK_WIDTH'(stack_pointer+1)==i) begin
+			end else if (stack_push && ADDR_STACK_WIDTH'(stack_pointer+1)==i) begin
 				addr_stack_next[i] <= pc;
 			end else begin
 				addr_stack_next[i] <= addr_stack[i];

@@ -14,7 +14,9 @@ module register_file #(
 	input logic[31:0] commit_data,
 	input logic reset,
 	req_if acc_req[N_ACC],
-	input logic[31:0] acc_data[N_ACC]
+	input logic[31:0] acc_data[N_ACC],
+	output logic acc_all_valid_parallel,
+	output logic no_acc_req
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t register_init = '{
@@ -53,6 +55,8 @@ module register_file #(
 
 	generate
 		if (FPR) begin
+			assign acc_all_valid_parallel = fadd_count[0]<=1 && fadd_count[1]<=1 && fadd_count[2]<=1;
+			assign no_acc_req = !acc_req[0].valid && !acc_req[1].valid && !acc_req[2].valid;
 			for (genvar i=0; i<N_ACC; i++) begin
 				assign acc_req[i].ready = fadd_count[i]<=1;
 				always_ff @(posedge clk) begin

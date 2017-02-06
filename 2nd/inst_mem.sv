@@ -5,6 +5,7 @@ module inst_mem #(
 	input logic clk,
 	input logic reset_pc,
 	input logic stall,
+	input logic parallel,
 	output logic[INST_MEM_WIDTH-1:0] pc,
 	inst_if inst,
 	output logic[PATTERN_WIDTH-1:0] pattern_begin,
@@ -31,7 +32,7 @@ module inst_mem #(
 			inst_addr <= addr_on_failure;
 		end else if (inst.is_j || inst.is_b && prediction_begin[1]) begin
 			inst_addr <= inst.c_j;
-		end else if (inst.is_jr) begin
+		end else if (inst.is_jr || inst.is_fork_end && parallel) begin
 			inst_addr <= return_addr;
 		end else begin
 			inst_addr <= pc;
@@ -45,12 +46,14 @@ module inst_mem #(
 
 	always_ff @(posedge clk) begin
 		if (reset_pc) begin
-			pc <= 0;
+			pc <= 1;
 		end else if (!(!reset && stall)) begin
 			pc <= inst_addr + 1;
 		end
 
-		if (!(!reset && stall)) begin
+		if (reset_pc) begin
+			inst.bits <= inst_mem[0];
+		end else if (!(!reset && stall)) begin
 			inst.bits <= inst_mem[inst_addr];
 		end
 
@@ -59,7 +62,9 @@ module inst_mem #(
 			gh <= {gh[GH_WIDTH-2:0], taken};
 			pht[pattern_end] <= prediction_updated;
 		end
-		if (!(!reset && stall)) begin
+		if (reset_pc) begin
+			prediction_begin <= pht[0];
+		end else if (!(!reset && stall)) begin
 			prediction_begin <= pht[pattern];
 		end
 	end

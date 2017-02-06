@@ -11,7 +11,7 @@ module core #(
 );
 	////////////////////
 	//LED
-	//gc
+	//global
 	//IO
 	//inst_mem
 	//issue
@@ -23,7 +23,8 @@ module core #(
 
 	//LED
 
-	//gc
+	//global
+	logic parallel = 0;
 	logic[GC_WIDTH-1:0] gc;
 	logic[GD_WIDTH-1:0] gd;
 	req_if gc_req();
@@ -64,6 +65,8 @@ module core #(
 	req_if issue_req_in();
 	req_if issue_req_out();
 	req_if issue_req_acc[N_ACC]();
+	req_if issue_req_fork();
+	req_if issue_req_end();
 	req_if issue_req_jal();
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
@@ -161,6 +164,7 @@ module core #(
 	logic[ROB_WIDTH-1:0] fpr_commit_tag;
 	logic[31:0] gpr_commit_data;
 	logic[31:0] fpr_commit_data;
+	logic commit_ring_empty;
 	logic reset;
 	logic[COMMIT_RING_WIDTH-1:0] in_count;
 
@@ -168,12 +172,14 @@ module core #(
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
 	req_if acc_req[N_ACC]();
 	logic[31:0] acc_data[N_ACC];
+	logic acc_all_valid_parallel;
+	logic no_acc_req;
 
 
 
 	////////////////////
 	//LED
-	//gc
+	//global
 	//IO
 	//inst_mem
 	//issue
@@ -186,13 +192,19 @@ module core #(
 	//LED
 	assign LED = pc;
 
-	//gc
+	//global
+	assign gc_req.ready = 1;
 	always_ff @(posedge clk) begin
-		if (gc_req.valid && gc_req.ready) begin
+		if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end.valid&&issue_req_end.ready) begin
+			parallel <= !parallel;
+		end
+		if (issue_req_fork.valid && issue_req_fork.ready) begin
+			gc <= gpr_arch_read[0].data;
+			gd <= gpr_arch_read[1].data;
+		end else if (gc_req.valid && gc_req.ready) begin
 			gc <= $signed(gc) + $signed(gd);
 		end
 	end
-	//TODO gc, gd, gc_req.ready
 
 	//IO
 	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
@@ -239,13 +251,16 @@ module core #(
 	                        issue_req_acc[0].valid     && !issue_req_acc[0].ready     ||
 	                        issue_req_acc[1].valid     && !issue_req_acc[1].ready     ||
 	                        issue_req_acc[2].valid     && !issue_req_acc[2].ready     ||
+	                        issue_req_fork.valid       && !issue_req_fork.ready       ||
+	                        issue_req_end.valid        && !issue_req_end.ready        ||
 	                        issue_req_jal.valid        && !issue_req_jal.ready        ||
 	                        issue_req_b.valid          && !issue_req_b.ready;
 	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
 	inst_mem inst_mem(
 		.clk,
-		.reset_pc(0),
+		.reset_pc(issue_req_fork.valid && issue_req_fork.ready),
 		.stall(inst_mem_stall),
+		.parallel,
 		.pc,
 		.inst,
 		.pattern_begin,
@@ -275,8 +290,12 @@ module core #(
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
 	end
+	assign issue_req_fork.valid       = inst.is_fork_end && !parallel;
+	assign issue_req_end.valid        = inst.is_fork_end &&  parallel;
 	assign issue_req_jal.valid        = inst.is_jal;
 	assign issue_req_b.valid          = issue_req_commit_ring.ready && inst.is_b;
+	assign issue_req_fork.ready       = commit_ring_empty;
+	assign issue_req_end.ready        = commit_ring_empty && acc_all_valid_parallel && no_acc_req;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
 	                    inst.is_next ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :
@@ -451,6 +470,7 @@ module core #(
 		.commit_req_sw,
 		.commit_req_out,
 		.commit_req_b,
+		.empty(commit_ring_empty),
 		.reset,
 		.in_count
 	);
@@ -484,7 +504,9 @@ module core #(
 		.commit_data(fpr_commit_data),
 		.reset,
 		.acc_req,
-		.acc_data
+		.acc_data,
+		.acc_all_valid_parallel,
+		.no_acc_req
 	);
 	rob gpr_rob(
 		.clk,
@@ -686,6 +708,8 @@ module core #(
 		.fpr_cdb,
 		.issue_req_b,
 		.issue_req_jal,
+		.issue_req_fork,
+		.issue_req_end,
 		.commit_req(commit_req_b),
 		.prediction_begin,
 		.pattern_begin,
