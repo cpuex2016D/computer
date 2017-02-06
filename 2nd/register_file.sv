@@ -43,7 +43,7 @@ module register_file #(
 				registers[i].tag <= issue_tag;
 			end
 
-			if (FPR && i>=2**REG_WIDTH-N_ACC && fadd_count[i-(2**REG_WIDTH-N_ACC)]==1) begin
+			if (FPR && i>=2**REG_WIDTH-N_ACC && fadd_count[i-(2**REG_WIDTH-N_ACC)][0]) begin
 				registers[i].data <= fadd_result[i-(2**REG_WIDTH-N_ACC)];
 			end else if (commit && !registers[i].valid && i==commit_arch_num) begin
 				registers[i].data <= commit_data;
@@ -60,7 +60,7 @@ module register_file #(
 				end
 				fadd_core fadd_core(
 					.aclk(clk),
-					.s_axis_a_tdata(fadd_count[0] ? fadd_result[i] : registers[2**REG_WIDTH-N_ACC+i].data),  //バイパス
+					.s_axis_a_tdata(fadd_count[i][0] ? fadd_result[i] : registers[2**REG_WIDTH-N_ACC+i].data),  //バイパス
 					.s_axis_b_tdata(acc_data[i]),
 					.m_axis_result_tdata(fadd_result[i])
 				);
