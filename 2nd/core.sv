@@ -2,7 +2,8 @@
 
 module core #(
 	parameter RECEIVER_PERIOD = "hoge",
-	parameter SENDER_PERIOD = "hoge"
+	parameter SENDER_PERIOD = "hoge",
+	parameter PARENT = "hoge"
 ) (
 	input logic clk,
 	input logic UART_RX,
@@ -190,7 +191,11 @@ module core #(
 	////////////////////
 
 	//LED
-	assign LED = pc;
+	generate
+		if (PARENT) begin
+			assign LED = pc;
+		end
+	endgenerate
 
 	//global
 	assign gc_req.ready = 1;
@@ -207,22 +212,26 @@ module core #(
 	end
 
 	//IO
-	receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
-		.clk,
-		.in(UART_RX),
-		.ready(receiver_ready),
-		.out(receiver_out),
-		.valid(receiver_valid),
-		.reset,
-		.in_count
-	);
-	sender_wrapper #(SENDER_PERIOD) sender_wrapper(
-		.clk,
-		.in(sender_in),
-		.valid(sender_valid),
-		.out(UART_TX),
-		.ready(sender_ready)
-	);
+	generate
+		if (PARENT) begin
+			receiver_wrapper #(RECEIVER_PERIOD) receiver_wrapper(
+				.clk,
+				.in(UART_RX),
+				.ready(receiver_ready),
+				.out(receiver_out),
+				.valid(receiver_valid),
+				.reset,
+				.in_count
+			);
+			sender_wrapper #(SENDER_PERIOD) sender_wrapper(
+				.clk,
+				.in(sender_in),
+				.valid(sender_valid),
+				.out(UART_TX),
+				.ready(sender_ready)
+			);
+		end
+	endgenerate
 
 	//inst_mem
 	assign inst_mem_stall = (inst.is_add_sub    ||
@@ -285,8 +294,8 @@ module core #(
 	assign issue_req_lw_sw.valid      = issue_req_commit_ring.ready && inst.is_lw_sw;
 	assign issue_req_ftoi.valid       = issue_req_commit_ring.ready && inst.is_ftoi;
 	assign issue_req_itof.valid       = issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in;
-	assign issue_req_out.valid        = issue_req_commit_ring.ready && inst.is_out;
+	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in  && PARENT;
+	assign issue_req_out.valid        = issue_req_commit_ring.ready && inst.is_out && PARENT;
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
 	end
@@ -306,8 +315,8 @@ module core #(
 	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
 	                    inst.is_ftoi ? COMMIT_GPR :
 	                    inst.is_itof ? COMMIT_FPR :
-	                    inst.is_in ? inst.op[0] ? COMMIT_FPR_IN : COMMIT_GPR_IN :
-	                    inst.is_out ? COMMIT_OUT :
+	                    inst.is_in&&PARENT ? inst.op[0] ? COMMIT_FPR_IN : COMMIT_GPR_IN :
+	                    inst.is_out&&PARENT ? COMMIT_OUT :
 	                    inst.is_b ? COMMIT_B : COMMIT_X;
 	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
 	                                     issue_req_next.valid       && issue_req_next.ready       ||
@@ -664,28 +673,35 @@ module core #(
 		.result(result_itof),
 		.reset
 	);
-	in in(
-		.clk,
-		.inst,
-		.issue_req(issue_req_in),
-		.gpr_cdb_req(gpr_cdb_req_in),
-		.fpr_cdb_req(fpr_cdb_req_in),
-		.result(result_in),
-		.receiver_out,
-		.receiver_valid,
-		.receiver_ready
-	);
-	out out(
-		.clk,
-		.gpr_read,
-		.gpr_cdb,
-		.issue_req(issue_req_out),
-		.commit_req(commit_req_out),
-		.sender_ready,
-		.sender_valid,
-		.sender_in,
-		.reset
-	);
+	generate
+		if (PARENT) begin
+			in in(
+				.clk,
+				.inst,
+				.issue_req(issue_req_in),
+				.gpr_cdb_req(gpr_cdb_req_in),
+				.fpr_cdb_req(fpr_cdb_req_in),
+				.result(result_in),
+				.receiver_out,
+				.receiver_valid,
+				.receiver_ready
+			);
+			out out(
+				.clk,
+				.gpr_read,
+				.gpr_cdb,
+				.issue_req(issue_req_out),
+				.commit_req(commit_req_out),
+				.sender_ready,
+				.sender_valid,
+				.sender_in,
+				.reset
+			);
+		end else begin
+			assign gpr_cdb_req_in.valid = 0;
+			assign fpr_cdb_req_in.valid = 0;
+		end
+	endgenerate
 	for (genvar i=0; i<N_ACC; i++) begin
 		acc acc(
 			.clk,
