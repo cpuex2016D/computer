@@ -306,7 +306,7 @@ module core #(
 	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
 	                    inst.is_ftoi ? COMMIT_GPR :
 	                    inst.is_itof ? COMMIT_FPR :
-	                    inst.is_in ? COMMIT_GPR_IN :
+	                    inst.is_in ? inst.op[0] ? COMMIT_FPR_IN : COMMIT_GPR_IN :
 	                    inst.is_out ? COMMIT_OUT :
 	                    inst.is_b ? COMMIT_B : COMMIT_X;
 	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
