@@ -54,7 +54,7 @@ module top #(
 		assign gc_req[i].ready = 1;
 	end
 	for (genvar i=0; i<N_CORE+1; i++) begin
-		assign gc_plus = $signed(gc) + i * $signed(gd);
+		assign gc_plus[i] = $signed(gc) + i * $signed(gd);
 	end
 	assign gc_assign[0] = gc_plus[0];
 	assign gc_assign[1] = gc_plus[gc_req[0].valid];
