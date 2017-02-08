@@ -273,7 +273,7 @@ module core #(
 	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
 	inst_mem inst_mem(
 		.clk,
-		.reset_pc(issue_fork),
+		.issue_fork,
 		.stall(inst_mem_stall),
 		.parallel,
 		.pc,
