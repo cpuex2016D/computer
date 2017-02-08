@@ -44,7 +44,7 @@ module top #(
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
 	logic[GD_WIDTH-1:0] gd;
 	req_if gc_req[N_CORE]();
-	req_if acc_req[N_CORE][N_ACC]();
+	req_if acc_req[N_CORE*N_ACC]();
 	logic[31:0] acc_data[N_CORE][N_ACC];
 	logic ending[1:N_CORE-1];
 

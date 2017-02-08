@@ -15,7 +15,7 @@ module core #(
 	output logic[GD_WIDTH-1:0] fork_gd,
 	input logic[GC_WIDTH-1:0] gc,
 	req_if gc_req,
-	req_if acc_req[N_CORE][N_ACC],
+	req_if acc_req[N_CORE*N_ACC],
 	inout logic[31:0] acc_data[N_CORE][N_ACC],
 	inout logic ending  //子コアは自身が終了していることを示し、親コアは自身以外の全子コアが終了していることを受け取る
 );
@@ -721,7 +721,7 @@ module core #(
 			.b_count_next,
 			.b_commit(commit_req_b.valid && commit_req_b.ready),
 			.issue_req(issue_req_acc[i]),
-			.acc_req(acc_req[CORE_I][i]),
+			.acc_req(acc_req[CORE_I*N_ACC+i]),
 			.acc_data(acc_data[CORE_I][i]),
 			.failure
 		);
