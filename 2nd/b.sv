@@ -35,7 +35,7 @@ module b #(
 	req_if issue_req_b,
 	req_if issue_req_jal,
 	req_if issue_req_fork,
-	req_if issue_req_end,
+	req_if issue_req_end_parent,
 	req_if commit_req,
 	input logic[1:0] prediction_begin,
 	input logic[PATTERN_WIDTH-1:0] pattern_begin,
@@ -172,7 +172,7 @@ module b #(
 
 	assign issue_req_jal.ready = backup_count < N_BACKUP_ENTRY || commit&&backup_e[0].pointer==1;
 	wire stack_push = issue_req_jal.valid&&issue_req_jal.ready || issue_req_fork.valid&&issue_req_fork.ready;
-	wire stack_pop = inst.is_jr || issue_req_end.valid&&issue_req_end.ready;
+	wire stack_pop = inst.is_jr || issue_req_end_parent.valid&&issue_req_end_parent.ready;
 
 	logic shift[4];
 	assign shift[0] = backup_e[0].pointer!=1;
