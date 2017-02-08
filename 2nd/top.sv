@@ -39,6 +39,8 @@ module top #(
 	logic issue_fork;
 	logic[GC_WIDTH-1:0] fork_gc;
 	logic[GD_WIDTH-1:0] fork_gd;
+	logic[31:0] gpr_arch_broadcast[2**REG_WIDTH];
+	logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC];
 	logic[GC_WIDTH-1:0] gc;
 	logic[GC_WIDTH-1:0] gc_plus[N_CORE+1];
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
@@ -83,6 +85,8 @@ module top #(
 		.issue_fork,
 		.fork_gc,
 		.fork_gd,
+		.gpr_arch_broadcast,
+		.fpr_arch_broadcast,
 		.gc(gc_assign[0]),
 		.gc_req(gc_req[0]),
 		.acc_req,
@@ -96,6 +100,8 @@ module top #(
 		) child(
 			.clk,
 			.issue_fork,
+			.gpr_arch_broadcast,
+			.fpr_arch_broadcast,
 			.gc(gc_assign[i]),
 			.gc_req(gc_req[i]),
 			.acc_req,

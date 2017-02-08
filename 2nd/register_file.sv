@@ -17,7 +17,9 @@ module register_file #(
 	req_if acc_req[N_CORE*N_ACC],
 	input logic[31:0] acc_data[N_CORE][N_ACC],
 	output logic acc_all_valid_parallel,
-	output logic no_acc_req
+	output logic no_acc_req,
+	input logic issue_fork,
+	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC];
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t register_init = '{
@@ -46,7 +48,9 @@ module register_file #(
 				registers[i].tag <= issue_tag;
 			end
 
-			if (FPR && i>=2**REG_WIDTH-N_ACC && fadd_count[i-(2**REG_WIDTH-N_ACC)][0]) begin
+			if (!PARENT && issue_fork) begin
+				registers[i].data <= arch_broadcast[i];
+			end else if (FPR && i>=2**REG_WIDTH-N_ACC && fadd_count[i-(2**REG_WIDTH-N_ACC)][0]) begin
 				registers[i].data <= fadd_result[i-(2**REG_WIDTH-N_ACC)];
 			end else if (commit && !registers[i].valid && i==commit_arch_num) begin
 				registers[i].data <= commit_data;
@@ -55,6 +59,11 @@ module register_file #(
 	end
 
 	generate
+		if (PARENT) begin
+			for (genvar i=0; i<2**REG_WIDTH-FPR*N_ACC; i++) begin
+				assign arch_broadcast[i] = registers[i].data;
+			end
+		end
 		if (PARENT && FPR) begin
 			assign acc_all_valid_parallel = fadd_count[0]<=1 && fadd_count[1]<=1 && fadd_count[2]<=1;
 			assign no_acc_req = !acc_req[0].valid && !acc_req[ 1].valid && !acc_req[ 2].valid &&

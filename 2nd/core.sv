@@ -13,6 +13,8 @@ module core #(
 	inout logic issue_fork,
 	output logic[GC_WIDTH-1:0] fork_gc,
 	output logic[GD_WIDTH-1:0] fork_gd,
+	inout logic[31:0] gpr_arch_broadcast[2**REG_WIDTH],
+	inout logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC],
 	input logic[GC_WIDTH-1:0] gc,
 	req_if gc_req,
 	req_if acc_req[N_CORE*N_ACC],
@@ -510,7 +512,9 @@ module core #(
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
 		.reset,
-		.acc_req  //これがないと合成できない
+		.acc_req,  //これがないと合成できない
+		.issue_fork,
+		.arch_broadcast(gpr_arch_broadcast)
 	);
 	register_file #(.PARENT(PARENT), .FPR(1)) fpr_arch(
 		.clk,
@@ -526,7 +530,9 @@ module core #(
 		.acc_req,
 		.acc_data,
 		.acc_all_valid_parallel,
-		.no_acc_req
+		.no_acc_req,
+		.issue_fork,
+		.arch_broadcast(fpr_arch_broadcast)
 	);
 	rob gpr_rob(
 		.clk,
