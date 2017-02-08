@@ -14,7 +14,7 @@ package my_package;
 	parameter GD_WIDTH = 2;
 
 	parameter N_B_ENTRY = 4;
-	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallelのみparameterizeされていない
+	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallel, register_file.no_acc_reqのみparameterizeされていない
 	parameter N_CORE = 4;  //register_file, topのみparameterizeされていない
 
 	parameter PC_INIT = 0;

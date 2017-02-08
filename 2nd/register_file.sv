@@ -57,7 +57,10 @@ module register_file #(
 	generate
 		if (PARENT && FPR) begin
 			assign acc_all_valid_parallel = fadd_count[0]<=1 && fadd_count[1]<=1 && fadd_count[2]<=1;
-			assign no_acc_req = !acc_req.or().valid;  //TODO
+			assign no_acc_req = !acc_req[0][0].valid && !acc_req[0][1].valid && !acc_req[0][2].valid &&
+			                    !acc_req[1][0].valid && !acc_req[1][1].valid && !acc_req[1][2].valid &&
+			                    !acc_req[2][0].valid && !acc_req[2][1].valid && !acc_req[2][2].valid &&
+			                    !acc_req[3][0].valid && !acc_req[3][1].valid && !acc_req[3][2].valid;
 			for (genvar i=0; i<N_ACC; i++) begin
 				assign acc_req[0][i].ready = fadd_count[i]<=1;
 				assign acc_req[1][i].ready = fadd_count[i]<=1 && !acc_req[0][i].valid;
