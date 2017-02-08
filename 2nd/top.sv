@@ -47,6 +47,7 @@ module top #(
 	req_if acc_req[N_CORE*N_ACC]();
 	logic[31:0] acc_data[N_CORE][N_ACC];
 	logic ending[1:N_CORE-1];
+	wire all_ending = ending[1]&&ending[2]&&ending[3];
 
 
 
@@ -86,7 +87,7 @@ module top #(
 		.gc_req(gc_req[0]),
 		.acc_req,
 		.acc_data,
-		.ending(ending.and())
+		.ending(all_ending)
 	);
 	for (genvar i=1; i<N_CORE; i++) begin
 		core #(
