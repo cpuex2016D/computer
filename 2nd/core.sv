@@ -3,12 +3,15 @@
 module core #(
 	parameter RECEIVER_PERIOD = "hoge",
 	parameter SENDER_PERIOD = "hoge",
-	parameter PARENT = "hoge"
+	parameter PARENT = "hoge",
+	parameter CORE_I = "hoge"
 ) (
 	input logic clk,
 	input logic UART_RX,
 	output logic UART_TX,
-	output logic[7:0] LED
+	output logic[7:0] LED,
+	req_if acc_req[N_CORE][N_ACC],
+	inout logic[31:0] acc_data[N_CORE][N_ACC]
 );
 	////////////////////
 	//LED
@@ -171,8 +174,6 @@ module core #(
 
 	//unit
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
-	req_if acc_req[N_ACC]();
-	logic[31:0] acc_data[N_ACC];
 	logic acc_all_valid_parallel;
 	logic no_acc_req;
 
@@ -488,7 +489,7 @@ module core #(
 
 
 	//unit
-	register_file #(0) gpr_arch(
+	register_file #(.PARENT(PARENT), .FPR(0)) gpr_arch(
 		.clk,
 		.inst,
 		.arch_read(gpr_arch_read),
@@ -501,7 +502,7 @@ module core #(
 		.reset,
 		.acc_req  //これがないと合成できない
 	);
-	register_file #(1) fpr_arch(
+	register_file #(.PARENT(PARENT), .FPR(1)) fpr_arch(
 		.clk,
 		.inst,
 		.arch_read(fpr_arch_read),
@@ -710,8 +711,8 @@ module core #(
 			.b_count_next,
 			.b_commit(commit_req_b.valid && commit_req_b.ready),
 			.issue_req(issue_req_acc[i]),
-			.acc_req(acc_req[i]),
-			.acc_data(acc_data[i]),
+			.acc_req(acc_req[CORE_I][i]),
+			.acc_data(acc_data[CORE_I][i]),
 			.failure
 		);
 	end

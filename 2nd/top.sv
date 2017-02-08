@@ -36,13 +36,29 @@ module top #(
 	//IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
+	req_if acc_req[N_CORE][N_ACC]();
+	logic[31:0] acc_data[N_CORE][N_ACC];
 	core #(
 		.RECEIVER_PERIOD(RECEIVER_PERIOD),
-		.SENDER_PERIOD(SENDER_PERIOD)
-	) core(
+		.SENDER_PERIOD(SENDER_PERIOD),
+		.PARENT(1),
+		.CORE_I(0)
+	) parent(
 		.clk,
 		.UART_RX,
 		.UART_TX,
-		.LED
+		.LED,
+		.acc_req,
+		.acc_data
 	);
+	for (genvar i=1; i<N_CORE; i++) begin
+		core #(
+			.PARENT(0),
+			.CORE_I(i)
+		) child(
+			.clk,
+			.acc_req,
+			.acc_data
+		);
+	end
 endmodule
