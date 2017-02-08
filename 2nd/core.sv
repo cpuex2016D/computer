@@ -10,8 +10,14 @@ module core #(
 	input logic UART_RX,
 	output logic UART_TX,
 	output logic[7:0] LED,
+	inout logic issue_fork,
+	output logic[GC_WIDTH-1:0] fork_gc,
+	output logic[GD_WIDTH-1:0] fork_gd,
+	input logic[GC_WIDTH-1:0] gc,
+	req_if gc_req,
 	req_if acc_req[N_CORE][N_ACC],
-	inout logic[31:0] acc_data[N_CORE][N_ACC]
+	inout logic[31:0] acc_data[N_CORE][N_ACC],
+	inout logic ending  //子コアは自身が終了していることを示し、親コアは自身以外の全子コアが終了していることを受け取る
 );
 	////////////////////
 	//LED
@@ -29,9 +35,6 @@ module core #(
 
 	//global
 	logic parallel = 0;
-	logic[GC_WIDTH-1:0] gc;
-	logic[GD_WIDTH-1:0] gd;
-	req_if gc_req();
 
 	//IO
 	logic[31:0] receiver_out;
@@ -199,18 +202,19 @@ module core #(
 	endgenerate
 
 	//global
-	assign gc_req.ready = 1;
-	always_ff @(posedge clk) begin
-		if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end_parent.valid&&issue_req_end_parent.ready) begin
-			parallel <= !parallel;
+	generate
+		if (PARENT) begin
+			assign fork_gc = gpr_arch_read[0].data;
+			assign fork_gd = gpr_arch_read[1].data;
+			always_ff @(posedge clk) begin
+				if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end_parent.valid&&issue_req_end_parent.ready) begin
+					parallel <= !parallel;
+				end
+			end
+		end else begin
+			assign ending = inst.is_fork_end && commit_ring_empty;
 		end
-		if (issue_req_fork.valid && issue_req_fork.ready) begin
-			gc <= gpr_arch_read[0].data;
-			gd <= gpr_arch_read[1].data;
-		end else if (gc_req.valid && gc_req.ready) begin
-			gc <= $signed(gc) + $signed(gd);
-		end
-	end
+	endgenerate
 
 	//IO
 	generate
@@ -264,11 +268,12 @@ module core #(
 	                        issue_req_fork.valid       && !issue_req_fork.ready       ||
 	                        issue_req_end_parent.valid && !issue_req_end_parent.ready ||
 	                        issue_req_jal.valid        && !issue_req_jal.ready        ||
-	                        issue_req_b.valid          && !issue_req_b.ready;
+	                        issue_req_b.valid          && !issue_req_b.ready          ||
+	                        inst.is_fork_end && !PARENT;
 	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
 	inst_mem inst_mem(
 		.clk,
-		.reset_pc(issue_req_fork.valid && issue_req_fork.ready),
+		.reset_pc(issue_fork),
 		.stall(inst_mem_stall),
 		.parallel,
 		.pc,
@@ -300,12 +305,12 @@ module core #(
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
 	end
-	assign issue_req_fork.valid       = inst.is_fork_end && !parallel;
-	assign issue_req_end_parent.valid = inst.is_fork_end &&  parallel;
+	assign issue_req_fork.valid       = inst.is_fork_end && !parallel && PARENT;
+	assign issue_req_end_parent.valid = inst.is_fork_end &&  parallel && PARENT;
 	assign issue_req_jal.valid        = inst.is_jal;
 	assign issue_req_b.valid          = issue_req_commit_ring.ready && inst.is_b;
 	assign issue_req_fork.ready       = commit_ring_empty;
-	assign issue_req_end_parent.ready = commit_ring_empty && acc_all_valid_parallel && no_acc_req;
+	assign issue_req_end_parent.ready = commit_ring_empty && ending && acc_all_valid_parallel && no_acc_req;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
 	                    inst.is_next ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :
@@ -345,6 +350,11 @@ module core #(
 	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
 	                   issue_req_itof.valid       && issue_req_itof.ready       ||
 	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
+	generate
+		if (PARENT) begin
+			assign issue_fork = issue_req_fork.valid && issue_req_fork.ready;
+		end
+	endgenerate
 	//read
 	for (genvar i=0; i<2; i++) begin
 		assign gpr_read[i].valid = gpr_arch_read[i].valid || gpr_rob_read[i].valid || tag_match(gpr_cdb, gpr_arch_read[i].tag);
