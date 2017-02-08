@@ -271,7 +271,7 @@ module core #(
 	                        issue_req_b.valid          && !issue_req_b.ready          ||
 	                        inst.is_fork_end && !PARENT;
 	assign addr_on_failure_in = prediction_begin[1] ? pc : inst.c_j;
-	inst_mem inst_mem(
+	inst_mem #(PARENT) inst_mem(
 		.clk,
 		.issue_fork,
 		.stall(inst_mem_stall),

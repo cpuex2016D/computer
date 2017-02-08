@@ -1,6 +1,7 @@
 `include "common.vh"
 
 module inst_mem #(
+	parameter PARENT = "hoge"
 ) (
 	input logic clk,
 	input logic issue_fork,
@@ -23,7 +24,7 @@ module inst_mem #(
 	logic[GH_WIDTH-1:0] gh = 0;
 	initial begin
 		$readmemh("text", inst_mem);
-		inst.bits <= {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]};
+		inst.bits <= PARENT ? {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]} : 32'h7c000000;
 	end
 
 	logic[INST_MEM_WIDTH-1:0] inst_addr;
