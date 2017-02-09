@@ -65,6 +65,11 @@ module b #(
 	logic[INST_MEM_WIDTH-1:0] addr_stack_next[2**ADDR_STACK_WIDTH];
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer = 2**ADDR_STACK_WIDTH-1;  //スタックのトップ(戻り番地がある位置)を指す (スタックのトップの1つ上を指すという実装も考えられる?)
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer_next;
+	for (genvar i=0; i<N_B_ENTRY; i++) begin
+		initial begin
+			b_e[i].failure <= 0;
+		end
+	end
 
 	//cmp
 	assign cmp_e_new.cmp_type = inst.op[4] ? inst.op[3] ? CMP_LE : CMP_E
