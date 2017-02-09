@@ -33,7 +33,7 @@ module inst_mem #(
 			inst_addr <= addr_on_failure;
 		end else if (inst.is_j || inst.is_b && prediction_begin[1] || issue_fork) begin
 			inst_addr <= inst.c_j;
-		end else if (inst.is_jr || inst.is_fork_end && parallel) begin
+		end else if (inst.is_jr || inst.is_fork_end && parallel && PARENT) begin
 			inst_addr <= return_addr;
 		end else begin
 			inst_addr <= pc;

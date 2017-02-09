@@ -27,6 +27,7 @@ typedef struct {
 } sw_entry;
 
 module lw_sw #(
+	parameter PARENT = "hoge"
 ) (
 	input logic clk,
 	inst_if inst,
@@ -42,7 +43,9 @@ module lw_sw #(
 	req_if commit_req,
 	output logic[ROB_WIDTH-1:0] tag,
 	output logic[31:0] result,
-	input logic reset
+	input logic reset,
+	input logic parallel,
+	inout cdb_t sw_broadcast  //tagは使わない
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -217,8 +220,14 @@ module lw_sw #(
 		.addrb(lw_e_next[0].addr),
 		.clka(clk),
 		.clkb(clk),
-		.dina(sw_e[0].sw_data.data),
+		.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast.data),
 		.doutb(data_mem_out),
-		.wea(sw_commit)
+		.wea(sw_commit || sw_broadcast.valid)
 	);
+	generate
+		if (PARENT) begin
+			assign sw_broadcast.valid = !parallel && sw_commit;
+			assign sw_broadcast.data  = sw_e[0].sw_data.data;
+		end
+	endgenerate
 endmodule

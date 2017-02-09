@@ -10,6 +10,8 @@ module core #(
 	input logic UART_RX,
 	output logic UART_TX,
 	output logic[7:0] LED,
+	inout logic parallel,
+	inout cdb_t sw_broadcast,
 	inout logic issue_fork,
 	output logic[GC_WIDTH-1:0] fork_gc,
 	output logic[GD_WIDTH-1:0] fork_gd,
@@ -36,7 +38,6 @@ module core #(
 	//LED
 
 	//global
-	logic parallel = 0;
 
 	//IO
 	logic[31:0] receiver_out;
@@ -208,6 +209,9 @@ module core #(
 		if (PARENT) begin
 			assign fork_gc = gpr_arch_read[0].data;
 			assign fork_gd = gpr_arch_read[1].data;
+			initial begin
+				parallel <= 0;
+			end
 			always_ff @(posedge clk) begin
 				if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end_parent.valid&&issue_req_end_parent.ready) begin
 					parallel <= !parallel;
@@ -649,7 +653,7 @@ module core #(
 		.result(result_fmov),
 		.reset
 	);
-	lw_sw lw_sw(
+	lw_sw #(PARENT) lw_sw(
 		.clk,
 		.inst,
 		.gpr_read,
@@ -664,7 +668,9 @@ module core #(
 		.commit_req(commit_req_sw),
 		.tag(tag_lw),
 		.result(result_lw),
-		.reset
+		.reset,
+		.parallel,
+		.sw_broadcast
 	);
 	ftoi ftoi(
 		.clk,

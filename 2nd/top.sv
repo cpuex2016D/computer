@@ -36,6 +36,8 @@ module top #(
 	//IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
+	logic parallel;
+	cdb_t sw_broadcast;
 	logic issue_fork;
 	logic[GC_WIDTH-1:0] fork_gc;
 	logic[GD_WIDTH-1:0] fork_gd;
@@ -82,6 +84,8 @@ module top #(
 		.UART_RX,
 		.UART_TX,
 		.LED,
+		.parallel,
+		.sw_broadcast,
 		.issue_fork,
 		.fork_gc,
 		.fork_gd,
@@ -99,6 +103,8 @@ module top #(
 			.CORE_I(i)
 		) child(
 			.clk,
+			.parallel,
+			.sw_broadcast,
 			.issue_fork,
 			.gpr_arch_broadcast,
 			.fpr_arch_broadcast,
