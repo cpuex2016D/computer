@@ -16,6 +16,8 @@ module register_file #(
 	input logic reset,
 	req_if acc_req[N_CORE*N_ACC],
 	input logic[31:0] acc_data[N_CORE][N_ACC],
+	input logic[GC_WIDTH-1:0] gc_stamp[N_CORE][N_ACC],
+	input logic gd_sign,
 	output logic acc_all_valid_parallel,
 	output logic no_acc_req,
 	input logic issue_fork,
@@ -71,13 +73,19 @@ module register_file #(
 			                    !acc_req[6].valid && !acc_req[ 7].valid && !acc_req[ 8].valid &&
 			                    !acc_req[9].valid && !acc_req[10].valid && !acc_req[11].valid;
 			for (genvar i=0; i<N_ACC; i++) begin
-				assign acc_req[0*N_ACC+i].ready = fadd_count[i]<=1;
-				assign acc_req[1*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid;
-				assign acc_req[2*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid && !acc_req[1*N_ACC+i].valid;
-				assign acc_req[3*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid && !acc_req[1*N_ACC+i].valid && !acc_req[2*N_ACC+i].valid;
-				wire[1:0] dispatched = acc_req[0*N_ACC+i].valid ? 0 :
-				                       acc_req[1*N_ACC+i].valid ? 1 :
-				                       acc_req[2*N_ACC+i].valid ? 2 : 3;
+				logic cmp0[2];
+				assign cmp0[0] = gd_sign ^ ($signed(gc_stamp[0][i]) < $signed(gc_stamp[1][i]) ? 0 :
+				                            $signed(gc_stamp[0][i]) > $signed(gc_stamp[1][i]) ? 1 : 1'bx);
+				assign cmp0[1] = gd_sign ^ ($signed(gc_stamp[2][i]) < $signed(gc_stamp[3][i]) ? 0 :
+				                            $signed(gc_stamp[2][i]) > $signed(gc_stamp[3][i]) ? 1 : 1'bx);
+				logic[1:0] dispatched;
+				assign dispatched[1] = gd_sign ^ ($signed(gc_stamp[0+cmp0[0]][i]) < $signed(gc_stamp[2+cmp0[1]][i]) ? 0 :
+				                                  $signed(gc_stamp[0+cmp0[0]][i]) > $signed(gc_stamp[2+cmp0[1]][i]) ? 1 : 1'bx);
+				assign dispatched[0] = cmp0[dispatched[1]];
+				assign acc_req[0*N_ACC+i].ready = fadd_count[i]<=1 && dispatched==0;
+				assign acc_req[1*N_ACC+i].ready = fadd_count[i]<=1 && dispatched==1;
+				assign acc_req[2*N_ACC+i].ready = fadd_count[i]<=1 && dispatched==2;
+				assign acc_req[3*N_ACC+i].ready = fadd_count[i]<=1 && dispatched==3;
 				wire dispatch = acc_req[0*N_ACC+i].valid&&acc_req[0*N_ACC+i].ready ||
 				                acc_req[1*N_ACC+i].valid&&acc_req[1*N_ACC+i].ready ||
 				                acc_req[2*N_ACC+i].valid&&acc_req[2*N_ACC+i].ready ||

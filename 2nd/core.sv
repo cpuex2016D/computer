@@ -21,6 +21,8 @@ module core #(
 	req_if gc_req,
 	req_if acc_req[N_CORE*N_ACC],
 	inout logic[31:0] acc_data[N_CORE][N_ACC],
+	inout logic[GC_WIDTH-1:0] gc_stamp[N_CORE][N_ACC],
+	input logic gd_sign,
 	inout logic ending  //子コアは自身が終了していることを示し、親コアは自身以外の全子コアが終了していることを受け取る
 );
 	////////////////////
@@ -182,6 +184,7 @@ module core #(
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
 	logic acc_all_valid_parallel;
 	logic no_acc_req;
+	logic next_e_exists;
 
 
 
@@ -534,6 +537,8 @@ module core #(
 		.reset,
 		.acc_req,
 		.acc_data,
+		.gc_stamp,
+		.gd_sign,
 		.acc_all_valid_parallel,
 		.no_acc_req,
 		.issue_fork,
@@ -590,7 +595,8 @@ module core #(
 		.gc,
 		.tag(tag_next),
 		.result(result_next),
-		.failure
+		.failure,
+		.next_e_exists
 	);
 	mov mov(
 		.clk,
@@ -736,7 +742,11 @@ module core #(
 			.issue_req(issue_req_acc[i]),
 			.acc_req(acc_req[CORE_I*N_ACC+i]),
 			.acc_data(acc_data[CORE_I][i]),
-			.failure
+			.failure,
+			.gc,
+			.gc_stamp(gc_stamp[CORE_I][i]),
+			.dispatch_gc(gc_req.valid && gc_req.ready),
+			.next_e_exists
 		);
 	end
 	b b(

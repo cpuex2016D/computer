@@ -50,6 +50,7 @@ module top #(
 	req_if gc_req[N_CORE]();
 	req_if acc_req[N_CORE*N_ACC]();
 	logic[31:0] acc_data[N_CORE][N_ACC];
+	logic[GC_WIDTH-1:0] gc_stamp[N_CORE][N_ACC];
 	logic ending[1:N_CORE-1];
 	wire all_ending = ending[1]&&ending[2]&&ending[3];
 
@@ -95,6 +96,8 @@ module top #(
 		.gc_req(gc_req[0]),
 		.acc_req,
 		.acc_data,
+		.gc_stamp,
+		.gd_sign(gd[GD_WIDTH-1]),
 		.ending(all_ending)
 	);
 	for (genvar i=1; i<N_CORE; i++) begin
@@ -112,6 +115,8 @@ module top #(
 			.gc_req(gc_req[i]),
 			.acc_req,
 			.acc_data,
+			.gc_stamp,
+			.gd_sign(gd[GD_WIDTH-1]),
 			.ending(ending[i])
 		);
 	end
