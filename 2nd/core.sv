@@ -200,7 +200,8 @@ module core #(
 	//LED
 	generate
 		if (PARENT) begin
-			assign LED = pc;
+			assign LED[7] = parallel;
+			assign LED[6:0] = pc;
 		end
 	endgenerate
 
