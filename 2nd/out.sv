@@ -36,7 +36,7 @@ module out #(
 	assign commit_req.ready = sender_ready;
 	wire commit = commit_req.valid && commit_req.ready;
 	assign sender_valid = commit_req.valid;
-	assign sender_in = e[0].data[7:0];
+	assign sender_in = e[0].data;
 	assign issue_req.ready = commit || count < N_ENTRY;
 
 	always_ff @(posedge clk) begin
