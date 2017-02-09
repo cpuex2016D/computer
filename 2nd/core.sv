@@ -184,6 +184,7 @@ module core #(
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
 	logic acc_all_valid_parallel;
 	logic no_acc_req;
+	logic[GC_WIDTH-1:0] gc_cur;
 	logic next_e_exists;
 
 
@@ -596,6 +597,7 @@ module core #(
 		.tag(tag_next),
 		.result(result_next),
 		.failure,
+		.gc_cur,
 		.next_e_exists
 	);
 	mov mov(
@@ -744,6 +746,7 @@ module core #(
 			.acc_data(acc_data[CORE_I][i]),
 			.failure,
 			.gc,
+			.gc_cur,
 			.gc_stamp(gc_stamp[CORE_I][i]),
 			.dispatch_gc(gc_req.valid && gc_req.ready),
 			.next_e_exists

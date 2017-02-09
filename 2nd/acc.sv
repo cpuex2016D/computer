@@ -19,6 +19,7 @@ module acc #(
 	output logic[31:0] acc_data,
 	input logic failure,
 	input logic[GC_WIDTH-1:0] gc,
+	input logic[GC_WIDTH-1:0] gc_cur,
 	output logic[GC_WIDTH-1:0] gc_stamp
 	input logic dispatch_gc,
 	input logic next_e_exists,
@@ -59,6 +60,8 @@ module acc #(
 	always_ff @(posedge clk) begin
 		if (dispatch_gc && (!(e.valid && e.gc_stamp_valid) || dispatch)) begin
 			gc_stamp <= gc;
+		end else if (dispatch) begin
+			gc_stamp <= gc_cur;
 		end
 		if (failure && !confirmed) begin
 			e <= e_invalid;

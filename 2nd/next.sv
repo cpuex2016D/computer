@@ -19,6 +19,7 @@ module next #(
 	output logic[ROB_WIDTH-1:0] tag,
 	output logic[31:0] result,
 	input logic failure,
+	output logic[GC_WIDTH-1:0] gc_cur,
 	output logic next_e_exists
 );
 	localparam next_entry e_invalid = '{
@@ -49,6 +50,9 @@ module next #(
 	assign issue_req.ready = !e.valid;
 
 	always_ff @(posedge clk) begin
+		if (dispatch) begin
+			gc_cur <= gc;
+		end
 		if (failure && !confirmed) begin
 			e <= e_invalid;
 		end else begin
