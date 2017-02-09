@@ -1,9 +1,11 @@
 `include "common.vh"
 
 typedef struct {
-	logic valid;
-	logic[ROB_WIDTH-1:0] tag;
-	logic[7:0] data;
+	struct {
+		logic valid;
+		logic[ROB_WIDTH-1:0] tag;
+		logic[7:0] data;
+	} opd;
 } out_entry;
 
 module out #(
@@ -24,23 +26,23 @@ module out #(
 	out_entry e_updated[N_ENTRY];
 	out_entry e_new;
 
-	assign e_new.valid = gpr_read[0].valid;
-	assign e_new.tag   = gpr_read[0].tag;
-	assign e_new.data  = gpr_read[0].data[7:0];
+	assign e_new.opd.valid = gpr_read[0].valid;
+	assign e_new.opd.tag   = gpr_read[0].tag;
+	assign e_new.opd.data  = gpr_read[0].data[7:0];
 	for (genvar j=0; j<N_ENTRY; j++) begin
-		assign e_updated[j].valid = e[j].valid || tag_match(gpr_cdb, e[j].tag);
-		assign e_updated[j].tag   = e[j].tag;
-		assign e_updated[j].data  = e[j].valid ? e[j].data : gpr_cdb.data[7:0];
+		assign e_updated[j].opd.valid = e[j].opd.valid || tag_match(gpr_cdb, e[j].opd.tag);
+		assign e_updated[j].opd.tag   = e[j].opd.tag;
+		assign e_updated[j].opd.data  = e[j].opd.valid ? e[j].opd.data : gpr_cdb.data[7:0];
 	end
 
 	assign commit_req.ready = sender_ready;
 	wire commit = commit_req.valid && commit_req.ready;
 	assign sender_valid = commit_req.valid;
-	assign sender_in = e[0].data;
+	assign sender_in = e[0].opd.data;
 	assign issue_req.ready = commit || count < N_ENTRY;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && !e[0].valid) begin
+		if (commit_req.valid && !e[0].opd.valid) begin
 			$display("hoge: out: error!!!!!!!!!!");
 		end
 		count <= reset ? 0 : count - commit + (issue_req.valid && issue_req.ready);
