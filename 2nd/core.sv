@@ -305,7 +305,7 @@ module core #(
 	assign issue_req_lw_sw.valid      = issue_req_commit_ring.ready && inst.is_lw_sw;
 	assign issue_req_ftoi.valid       = issue_req_commit_ring.ready && inst.is_ftoi;
 	assign issue_req_itof.valid       = issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in  && PARENT;
+	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in && PARENT;
 	assign issue_req_out.valid        = inst.is_out && PARENT;
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
