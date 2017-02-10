@@ -46,8 +46,16 @@ module out #(
 
 	always_ff @(posedge clk) begin
 		count <= failure ?
-		         (e[0].b_count==0)+(e[1].b_count==0)+(e[2].b_count==0)+(e[3].b_count==0)-commit :
-		         count - commit + (issue_req.valid && issue_req.ready);
+		           (count>=1 && e[0].b_count==0 ?
+		              count>=2 && e[1].b_count==0 ?
+		                count>=3 && e[2].b_count==0 ?
+		                  count>=4 && e[3].b_count==0 ?
+		                    4 :
+		                    3 :
+		                  2 :
+		                1 :
+		              0) - commit :
+		           count - commit + (issue_req.valid && issue_req.ready);
 		if (commit) begin
 			e[0] <= count>=2 ? e_updated[1] : e_new;
 			e[1] <= count>=3 ? e_updated[2] : e_new;
