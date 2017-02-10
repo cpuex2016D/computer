@@ -40,7 +40,6 @@ package my_package;
 		 COMMIT_FPR,
 		 COMMIT_GPR_IN,
 		 COMMIT_FPR_IN,
-		 COMMIT_SW,
 		 COMMIT_B,
 		 COMMIT_NULL = 3'b11x,
 		 COMMIT_X = 3'bx

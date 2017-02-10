@@ -7,7 +7,6 @@ module commit_ring #(
 	commit_ring_entry issue_type,
 	req_if commit_req_gpr,
 	req_if commit_req_fpr,
-	req_if commit_req_sw,
 	req_if commit_req_b,
 	output logic empty,
 	input logic reset,
@@ -23,12 +22,10 @@ module commit_ring #(
 	                              entry[commit_pointer]==COMMIT_GPR_IN;
 	assign commit_req_fpr.valid = entry[commit_pointer]==COMMIT_FPR ||
 	                              entry[commit_pointer]==COMMIT_FPR_IN;
-	assign commit_req_sw.valid  = entry[commit_pointer]==COMMIT_SW;
 	assign commit_req_b.valid   = entry[commit_pointer]==COMMIT_B;
 	wire issue = issue_req.valid && issue_req.ready;
 	wire commit = commit_req_gpr.valid && commit_req_gpr.ready ||
 	              commit_req_fpr.valid && commit_req_fpr.ready ||
-	              commit_req_sw.valid  && commit_req_sw.ready  ||
 	              commit_req_b.valid   && commit_req_b.ready;
 	always_ff @(posedge clk) begin
 		if (reset) begin
