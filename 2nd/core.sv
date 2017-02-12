@@ -247,6 +247,7 @@ module core #(
 
 	//inst_mem
 	assign inst_mem_stall = (inst.is_add_sub    ||
+	                         inst.is_next       ||
 	                         inst.is_mov        ||
 	                         inst.is_fadd_fsub  ||
 	                         inst.is_fmul       ||
