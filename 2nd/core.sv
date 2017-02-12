@@ -38,6 +38,7 @@ module core #(
 	//LED
 
 	//global
+	logic parallel_reg = 0;
 
 	//IO
 	logic[31:0] receiver_out;
@@ -206,14 +207,12 @@ module core #(
 	//global
 	generate
 		if (PARENT) begin
+			assign parallel = parallel_reg;
 			assign fork_gc = gpr_arch_read[0].data;
 			assign fork_gd = gpr_arch_read[1].data;
-			initial begin
-				parallel <= 0;
-			end
 			always_ff @(posedge clk) begin
 				if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end_parent.valid&&issue_req_end_parent.ready) begin
-					parallel <= !parallel;
+					parallel_reg <= !parallel;
 				end
 			end
 		end else begin
@@ -245,6 +244,7 @@ module core #(
 
 	//inst_mem
 	assign inst_mem_stall = (inst.is_add_sub    ||
+	                         inst.is_next       ||
 	                         inst.is_mov        ||
 	                         inst.is_fadd_fsub  ||
 	                         inst.is_fmul       ||
