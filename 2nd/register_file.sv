@@ -19,7 +19,7 @@ module register_file #(
 	output logic acc_all_valid_parallel,
 	output logic no_acc_req,
 	input logic issue_fork,
-	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC];
+	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC]
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t register_init = '{
