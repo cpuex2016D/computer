@@ -22,12 +22,22 @@ module register_file #(
 	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC]
 );
 	localparam LATENCY_FADD = 6;
-	localparam cdb_t register_init = '{
+	localparam cdb_t init_default = '{
 		valid: 1,
 		tag: {ROB_WIDTH{1'bx}},
 		data: 0
 	};
-	cdb_t registers[2**REG_WIDTH-(!PARENT&&FPR)*N_ACC] = '{default: register_init};
+	localparam cdb_t init_sp = '{
+		valid: 1,
+		tag: {ROB_WIDTH{1'bx}},
+		data: REG_SP_INIT
+	};
+	localparam cdb_t init_hp = '{
+		valid: 1,
+		tag: {ROB_WIDTH{1'bx}},
+		data: REG_HP_INIT
+	};
+	cdb_t registers[2**REG_WIDTH-(!PARENT&&FPR)*N_ACC] = '{REG_SP: (FPR ? init_default : init_sp), REG_HP: (FPR ? init_default : init_hp), default: init_default};
 	logic[$clog2(LATENCY_FADD):0] fadd_count[N_ACC] = '{default: 0};
 	logic[31:0] fadd_result[N_ACC];
 

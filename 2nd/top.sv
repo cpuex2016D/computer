@@ -1,7 +1,7 @@
 `include "common.vh"
 
 module top #(
-	parameter RECEIVER_PERIOD = 646,
+	parameter RECEIVER_PERIOD = 430,
 	//300MHz
 	//  300000000/115200/2 = 1302.0833333333333
 	//  1302 - 10 = 1292
@@ -13,7 +13,7 @@ module top #(
 	//  1292/2 = 646
 	//100MHz
 	//  1292/3 = 430.6666666666667
-	parameter SENDER_PERIOD = 1292
+	parameter SENDER_PERIOD = 861
 	//300MHz
 	//  300000000/115200 = 2604.1666666666665
 	//  2604 - 20 = 2584
