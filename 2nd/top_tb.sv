@@ -44,7 +44,7 @@ module top_tb;
 			$fwrite(fd_w, "%c", sim_receiver_out);
 			$fflush(fd_w);
 			count = count + 1;
-			if (count==160000) $finish;
+			if (count==49167) $finish;
 		end
 	end
 
@@ -53,8 +53,18 @@ module top_tb;
 //		fd_w = $fopen("../../../../o_sim", "wb");
 
 		top.pc <= 0;
-		top.inst_mem.inst_mem <= '{default: 0};
 
+		//毎回変える
+//		$readmemh("../../../minrt_pc0_text.hex", top.inst_mem.inst_mem);
+//		$readmemh("../../../minrt_pc0_data.hex", top.lw_sw.data_mem.data_mem);
+//		top.gpr_arch.registers[31].data = 789;
+		$readmemh("../../../minrt_pc0_1x1_text.hex", top.inst_mem.inst_mem);
+		$readmemh("../../../minrt_pc0_1x1_data.hex", top.lw_sw.data_mem.data_mem);
+		top.gpr_arch.registers[31].data = 790;
+		//毎回変えない
+		top.gpr_arch.registers[30].data = 32'h1ffff;
+
+/*
 		fd = $fopen("../../../program_fib_text", "rb");
 //		fd = $fopen("../../../../program_init_text", "rb");
 		#10;
@@ -71,11 +81,17 @@ module top_tb;
 			#PERIOD;
 			#1;
 		end
+*/
 
 		#10;
 		SW_E <= !SW_E;
 		#10;
 		SW_E <= !SW_E;
+		//毎回変える
+//		$readmemh("../../../contest.sld.bin.hex", top.receiver_wrapper.buffer);
+//		top.receiver_wrapper.in_pointer = 325;
+		$readmemh("../../../ball.sld.bin.hex", top.receiver_wrapper.buffer);
+		top.receiver_wrapper.in_pointer = 33;
 
 //		fd = $fopen("../../../program_mandelbrot_data", "rb");
 ////		fd = $fopen("../../../../program_mandelbrot_data", "rb");
