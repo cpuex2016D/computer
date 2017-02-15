@@ -8,9 +8,11 @@ typedef struct {
 	cdb_t opd;
 } fmov_entry;
 function logic[31:0] modify_sign(logic is_fneg, logic is_fabs, logic[31:0] data);
-	logic sign = is_fabs ? is_fneg ? 1'bx      : 0
-	                     : is_fneg ? !data[31] : data[31];
-	return {sign, data[30:0]};
+	return {
+		(is_fabs ? is_fneg ? 1'bx      : 1'b0
+		         : is_fneg ? !data[31] : data[31]),
+		data[30:0]
+	};
 endfunction
 
 module fmov #(

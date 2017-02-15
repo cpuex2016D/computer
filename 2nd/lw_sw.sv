@@ -79,7 +79,7 @@ module lw_sw #(
 	end
 
 	//agu
-	assign agu_e_new.valid    = issue_req.valid && inst.op[0]==1'b0;
+	assign agu_e_new.valid    = issue_req.valid && issue_req.ready && inst.op[0]==1'b0;
 	assign agu_e_new.lw_or_sw = inst.op[2] ? SW : LW;
 	assign agu_e_new.pointer  = agu_e_new.lw_or_sw==LW ? lw_count - lw_dispatch :
 	                            agu_e_new.lw_or_sw==SW ? sw_count - sw_commit   : 2'bx;
@@ -125,7 +125,9 @@ module lw_sw #(
 	assign lw_e_new.addr       = inst.op[0] ? inst.c_lwi : DATA_MEM_WIDTH'($signed(inst.c_lw));
 	assign lw_e_new.pointer    = sw_count - sw_commit;
 	for (genvar j=0; j<N_LW_ENTRY; j++) begin
-		wire agu_dispatch_to_me = agu_dispatch&&agu_e[agu_dispatched].lw_or_sw==LW&&agu_e[agu_dispatched].pointer==j;
+		agu_entry agu_e_dispatched;
+		assign agu_e_dispatched = agu_e[agu_dispatched];
+		wire agu_dispatch_to_me = agu_dispatch&&agu_e_dispatched.lw_or_sw==LW&&agu_e_dispatched.pointer==j;
 		assign lw_e_updated[j].gpr_or_fpr = lw_e[j].gpr_or_fpr;
 		assign lw_e_updated[j].tag        = lw_e[j].tag;
 		assign lw_e_updated[j].addr_valid = lw_e[j].addr_valid || agu_dispatch_to_me;
@@ -178,7 +180,9 @@ module lw_sw #(
 	assign sw_e_new.sw_data.data  = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].data :
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].data : 32'bx;
 	for (genvar j=0; j<N_SW_ENTRY; j++) begin
-		wire agu_dispatch_to_me = agu_dispatch&&agu_e[agu_dispatched].lw_or_sw==SW&&agu_e[agu_dispatched].pointer==j;
+		agu_entry agu_e_dispatched;
+		assign agu_e_dispatched = agu_e[agu_dispatched];
+		wire agu_dispatch_to_me = agu_dispatch&&agu_e_dispatched.lw_or_sw==SW&&agu_e_dispatched.pointer==j;
 		cdb_t cdb;
 		assign cdb = sw_e[j].gpr_or_fpr==GPR ? gpr_cdb : fpr_cdb;
 		assign sw_e_updated[j].addr_valid    = sw_e[j].addr_valid || agu_dispatch_to_me;
