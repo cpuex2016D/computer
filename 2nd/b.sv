@@ -17,6 +17,8 @@ typedef struct {
 	logic[PATTERN_WIDTH-1:0] pattern;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure;
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer;
+	logic[INST_MEM_WIDTH-1:0] pc_from;
+	logic[INST_MEM_WIDTH-1:0] pc_to;
 } b_entry;
 typedef struct {
 	logic[$clog2(N_B_ENTRY-1):0] pointer;  //b_entryへのポインタ  //b_entryにカウンタを持たせる実装の方が良いかも
@@ -43,7 +45,9 @@ module b #(
 	output logic[INST_MEM_WIDTH-1:0] addr_on_failure_out,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] pc,
-	output logic[INST_MEM_WIDTH-1:0] return_addr
+	output logic[INST_MEM_WIDTH-1:0] return_addr,
+	input logic[INST_MEM_WIDTH-1:0] pc_from,
+	input logic[INST_MEM_WIDTH-1:0] pc_to
 );
 	logic[$clog2(N_B_ENTRY):0] cmp_count = 0;
 	logic[$clog2(N_B_ENTRY):0] b_count = 0;
@@ -123,6 +127,8 @@ module b #(
 	assign b_e_new.pattern               = pattern_in;
 	assign b_e_new.addr_on_failure       = addr_on_failure_in;
 	assign b_e_new.stack_pointer         = stack_pointer;
+	assign b_e_new.pc_from               = pc_from;
+	assign b_e_new.pc_to                 = pc_to;
 	always_comb begin
 		if (commit) begin
 			b_e_moved[0] <= b_count>=2 ? b_e[1] : b_e_new;
@@ -145,12 +151,17 @@ module b #(
 			b_e[i].pattern               <= b_e_moved[i].pattern;
 			b_e[i].addr_on_failure       <= b_e_moved[i].addr_on_failure;
 			b_e[i].stack_pointer         <= b_e_moved[i].stack_pointer;
+			b_e[i].pc_from               <= b_e_moved[i].pc_from;
+			b_e[i].pc_to                 <= b_e_moved[i].pc_to;
 		end
 	end
 
 	assign failure             = b_e[0].prediction_or_failure;  //commitまで使われないという仮定で書いている(commit前はinvalidかもしれない)
 	assign pattern_out         = b_e[0].pattern;
 	assign addr_on_failure_out = b_e[0].addr_on_failure;
+	(* mark_debug = "true" *) wire branch = commit && !failure;
+	(* mark_debug = "true" *) wire[INST_MEM_WIDTH-1:0] debug_pc_from = b_e[0].pc_from;
+	(* mark_debug = "true" *) wire[INST_MEM_WIDTH-1:0] debug_pc_to   = b_e[0].pc_to;
 
 	//backup
 	assign backup_e_new.pointer       = b_count - commit;

@@ -35,7 +35,7 @@ module top_tb;
 		force top.clk = !top.clk;
 	end
 
-	int fd, fd_w;
+	int fd, fd_w, fd_debug;
 	int c;
 	int count = 0;
 
@@ -48,8 +48,16 @@ module top_tb;
 		end
 	end
 
+	always #(1) begin
+		if (top.b.commit && !top.failure) begin
+			$fdisplay(fd_debug, "%d %d %d", top.b.b_e[0].pc_from, top.b.b_e[0].pc_to, $stime());
+			$fflush(fd_debug);
+		end
+	end
+
 	initial begin
 		fd_w = $fopen("../../../o_sim", "wb");
+		fd_debug = $fopen("../../../o_debug", "w");
 //		fd_w = $fopen("../../../../o_sim", "wb");
 
 		top.pc <= 0;
@@ -90,7 +98,7 @@ module top_tb;
 		//毎回変える
 //		$readmemh("../../../contest.sld.bin.hex", top.receiver_wrapper.buffer);
 //		top.receiver_wrapper.in_pointer = 325;
-		$readmemh("../../../ball.sld.bin.hex", top.receiver_wrapper.buffer);
+		$readmemh("../../../none.sld.bin.hex", top.receiver_wrapper.buffer);
 		top.receiver_wrapper.in_pointer = 33;
 
 //		fd = $fopen("../../../program_mandelbrot_data", "rb");

@@ -628,6 +628,8 @@ module top #(
 		.addr_on_failure_out,
 		.reset,
 		.pc,
-		.return_addr
+		.return_addr,
+		.pc_from(pc-1),
+		.pc_to(inst.c_j)
 	);
 endmodule
