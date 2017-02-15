@@ -32,7 +32,7 @@ module rob #(
 	assign commit_e = rob[commit_pointer];
 	assign commit_data = commit_e.data;
 	assign commit_arch_num = commit_e.arch_num;
-	assign commit = commit_e.valid && commit_pointer!=issue_pointer && (!speculating || !sync_b)
+	assign commit = commit_e.valid && commit_pointer!=issue_pointer && (!speculating || !sync_b);
 
 	always_ff @(posedge clk) begin
 		if (reset) begin
