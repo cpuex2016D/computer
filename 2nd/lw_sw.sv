@@ -76,7 +76,7 @@ module lw_sw #(
 	end
 
 	//agu
-	assign agu_e_new.valid    = issue_req.valid && inst.op[0]==1'b0;
+	assign agu_e_new.valid    = issue_req.valid && issue_req.ready && inst.op[0]==1'b0;
 	assign agu_e_new.lw_or_sw = inst.op[2] ? SW : LW;
 	assign agu_e_new.pointer  = agu_e_new.lw_or_sw==LW ? lw_count - lw_dispatch :
 	                            agu_e_new.lw_or_sw==SW ? sw_count - sw_commit   : 2'bx;
