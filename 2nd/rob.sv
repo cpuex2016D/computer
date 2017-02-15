@@ -6,10 +6,12 @@ module rob #(
 	input cdb_t arch_read[2],
 	output rob_entry rob_read[2],
 	input cdb_t cdb,
-	input logic issue,
 	inst_if inst,
 	output logic[ROB_WIDTH-1:0] issue_tag,
-	req_if commit_req,
+	req_if issue_req,
+	input logic speculating,
+	input logic sync_b,
+	output logic commit,
 	output logic[REG_WIDTH-1:0] commit_arch_num,
 	output logic[ROB_WIDTH-1:0] commit_tag,
 	output logic[31:0] commit_data,
@@ -24,12 +26,13 @@ module rob #(
 	end
 	assign issue_tag = issue_pointer;
 	assign commit_tag = commit_pointer;
+	assign issue_req.ready = ROB_WIDTH'(issue_pointer+1) != commit_pointer;
+	wire issue = issue_req.valid && issue_req.ready;
 	rob_entry commit_e;
 	assign commit_e = rob[commit_pointer];
 	assign commit_data = commit_e.data;
 	assign commit_arch_num = commit_e.arch_num;
-	assign commit_req.ready = commit_e.valid;
-	wire commit = commit_req.valid && commit_req.ready;
+	assign commit = commit_e.valid && commit_pointer!=issue_pointer && (!speculating || !sync_b)
 
 	always_ff @(posedge clk) begin
 		if (reset) begin

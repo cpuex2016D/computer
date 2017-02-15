@@ -62,7 +62,8 @@ module core #(
 	logic[INST_MEM_WIDTH-1:0] return_addr;
 
 	//issue
-	req_if issue_req_commit_ring();
+	req_if issue_req_gpr();
+	req_if issue_req_fpr();
 	req_if issue_req_add_sub();
 	req_if issue_req_next();
 	req_if issue_req_mov();
@@ -82,9 +83,6 @@ module core #(
 	req_if issue_req_b();
 	logic[ROB_WIDTH-1:0] gpr_issue_tag;
 	logic[ROB_WIDTH-1:0] fpr_issue_tag;
-	commit_ring_entry issue_type;
-	logic issue_gpr;
-	logic issue_fpr;
 	//read
 	cdb_t     gpr_arch_read[2];
 	rob_entry gpr_rob_read[2];
@@ -164,21 +162,23 @@ module core #(
 	cdb_t fpr_cdb;
 
 	//commit
-	req_if commit_req_gpr();
-	req_if commit_req_fpr();
-	req_if commit_req_b();
+	logic speculating;
+	logic sync_b_gpr;
+	logic sync_b_fpr;
+	logic b_commit;
+	logic gpr_commit;
+	logic fpr_commit;
 	logic[REG_WIDTH-1:0] gpr_commit_arch_num;
 	logic[REG_WIDTH-1:0] fpr_commit_arch_num;
 	logic[ROB_WIDTH-1:0] gpr_commit_tag;
 	logic[ROB_WIDTH-1:0] fpr_commit_tag;
 	logic[31:0] gpr_commit_data;
 	logic[31:0] fpr_commit_data;
-	logic commit_ring_empty;
 	logic reset;
-	logic[COMMIT_RING_WIDTH-1:0] in_count;
 
 	//unit
 	logic[$clog2(N_B_ENTRY):0] b_count_next;
+	logic sw_empty;
 	logic acc_all_valid_parallel;
 	logic no_acc_req;
 
@@ -216,7 +216,7 @@ module core #(
 				end
 			end
 		end else begin
-			assign ending = inst.is_fork_end && commit_ring_empty;
+			assign ending = inst.is_fork_end && !speculating && gpr_issue_tag==gpr_commit_tag && fpr_issue_tag==fpr_commit_tag && sw_empty;
 		end
 	endgenerate
 
@@ -228,9 +228,7 @@ module core #(
 				.in(UART_RX),
 				.ready(receiver_ready),
 				.out(receiver_out),
-				.valid(receiver_valid),
-				.reset,
-				.in_count
+				.valid(receiver_valid)
 			);
 			sender_wrapper #(SENDER_PERIOD) sender_wrapper(
 				.clk,
@@ -246,15 +244,16 @@ module core #(
 	assign inst_mem_stall = (inst.is_add_sub    ||
 	                         inst.is_next       ||
 	                         inst.is_mov        ||
-	                         inst.is_fadd_fsub  ||
+	                         inst.is_lw_sw      && inst.op[2:1]==2'b00 ||
+	                         inst.is_ftoi       ||
+	                         inst.is_in         && inst.op[0]==0) && !issue_req_gpr.ready ||
+	                        (inst.is_fadd_fsub  ||
 	                         inst.is_fmul       ||
 	                         inst.is_fdiv_fsqrt ||
 	                         inst.is_fmov       ||
-	                         inst.is_lw_sw      && inst.op[2]==0 ||
-	                         inst.is_ftoi       ||
+	                         inst.is_lw_sw      && inst.op[2:1]==2'b01 ||
 	                         inst.is_itof       ||
-	                         inst.is_in         ||
-	                         inst.is_b            ) && !issue_req_commit_ring.ready ||
+	                         inst.is_in         && inst.op[0]==1) && !issue_req_fpr.ready ||
 	                        issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
 	                        issue_req_mov.valid        && !issue_req_mov.ready        ||
 	                        issue_req_fadd_fsub.valid  && !issue_req_fadd_fsub.ready  ||
@@ -287,24 +286,24 @@ module core #(
 		.prediction_begin,
 		.prediction_end,
 		.failure,
-		.commit_b(commit_req_b.valid && commit_req_b.ready),
+		.b_commit,
 		.reset,
 		.addr_on_failure(addr_on_failure_out),
 		.return_addr
 	);
 
 	//issue
-	assign issue_req_add_sub.valid    = issue_req_commit_ring.ready && inst.is_add_sub;
-	assign issue_req_next.valid       = issue_req_commit_ring.ready && inst.is_next;
-	assign issue_req_mov.valid        = issue_req_commit_ring.ready && inst.is_mov;
-	assign issue_req_fadd_fsub.valid  = issue_req_commit_ring.ready && inst.is_fadd_fsub;
-	assign issue_req_fmul.valid       = issue_req_commit_ring.ready && inst.is_fmul;
-	assign issue_req_fdiv_fsqrt.valid = issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
-	assign issue_req_fmov.valid       = issue_req_commit_ring.ready && inst.is_fmov;
-	assign issue_req_lw_sw.valid      = (inst.op[2]==1 || issue_req_commit_ring.ready) && inst.is_lw_sw;
-	assign issue_req_ftoi.valid       = issue_req_commit_ring.ready && inst.is_ftoi;
-	assign issue_req_itof.valid       = issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in && PARENT;
+	assign issue_req_add_sub.valid    = issue_req_gpr.ready && inst.is_add_sub;
+	assign issue_req_next.valid       = issue_req_gpr.ready && inst.is_next;
+	assign issue_req_mov.valid        = issue_req_gpr.ready && inst.is_mov;
+	assign issue_req_fadd_fsub.valid  = issue_req_fpr.ready && inst.is_fadd_fsub;
+	assign issue_req_fmul.valid       = issue_req_fpr.ready && inst.is_fmul;
+	assign issue_req_fdiv_fsqrt.valid = issue_req_fpr.ready && inst.is_fdiv_fsqrt;
+	assign issue_req_fmov.valid       = issue_req_fpr.ready && inst.is_fmov;
+	assign issue_req_lw_sw.valid      = (inst.op[2]==1 || inst.op[1]==0 && issue_req_gpr.ready || inst.op[1]==1 && issue_req_fpr.ready) && inst.is_lw_sw;
+	assign issue_req_ftoi.valid       = issue_req_gpr.ready && inst.is_ftoi;
+	assign issue_req_itof.valid       = issue_req_fpr.ready && inst.is_itof;
+	assign issue_req_in.valid         = (inst.op[0]==0 && issue_req_gpr.ready || inst.op[0]==1 && issue_req_fpr.ready) && inst.is_in && PARENT;
 	assign issue_req_out.valid        = inst.is_out && PARENT;
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
@@ -312,46 +311,22 @@ module core #(
 	assign issue_req_fork.valid       = inst.is_fork_end && !parallel && PARENT;
 	assign issue_req_end_parent.valid = inst.is_fork_end &&  parallel && PARENT;
 	assign issue_req_jal.valid        = inst.is_jal;
-	assign issue_req_b.valid          = issue_req_commit_ring.ready && inst.is_b;
-	assign issue_req_fork.ready       = commit_ring_empty;
-	assign issue_req_end_parent.ready = commit_ring_empty && ending && acc_all_valid_parallel && no_acc_req;
-	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
-	                    inst.is_next ? COMMIT_GPR :
-	                    inst.is_mov ? COMMIT_GPR :
-	                    inst.is_fadd_fsub ? COMMIT_FPR :
-	                    inst.is_fmul ? COMMIT_FPR :
-	                    inst.is_fdiv_fsqrt ? COMMIT_FPR :
-	                    inst.is_fmov ? COMMIT_FPR :
-	                    inst.is_lw_sw && !inst.op[2] ? inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
-	                    inst.is_ftoi ? COMMIT_GPR :
-	                    inst.is_itof ? COMMIT_FPR :
-	                    inst.is_in&&PARENT ? inst.op[0] ? COMMIT_FPR_IN : COMMIT_GPR_IN :
-	                    inst.is_b ? COMMIT_B : COMMIT_X;
-	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
-	                                     issue_req_next.valid       && issue_req_next.ready       ||
-	                                     issue_req_mov.valid        && issue_req_mov.ready        ||
-	                                     issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
-	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
-	                                     issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
-	                                     issue_req_fmov.valid       && issue_req_fmov.ready       ||
-	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2]==0 ||
-	                                     issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
-	                                     issue_req_itof.valid       && issue_req_itof.ready       ||
-	                                     issue_req_in.valid         && issue_req_in.ready         ||
-	                                     issue_req_b.valid          && issue_req_b.ready;
-	assign issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
-	                   issue_req_next.valid       && issue_req_next.ready       ||
-	                   issue_req_mov.valid        && issue_req_mov.ready        ||
-	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
-	                   issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
-	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==0;
-	assign issue_fpr = issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
-	                   issue_req_fmul.valid       && issue_req_fmul.ready       ||
-	                   issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
-	                   issue_req_fmov.valid       && issue_req_fmov.ready       ||
-	                   issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
-	                   issue_req_itof.valid       && issue_req_itof.ready       ||
-	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
+	assign issue_req_b.valid          = inst.is_b;
+	assign issue_req_fork.ready       = !speculating && gpr_issue_tag==gpr_commit_tag && fpr_issue_tag==fpr_commit_tag && sw_empty;
+	assign issue_req_end_parent.ready = !speculating && ending && acc_all_valid_parallel && no_acc_req;
+	assign issue_req_gpr.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
+	                             issue_req_next.valid       && issue_req_next.ready       ||
+	                             issue_req_mov.valid        && issue_req_mov.ready        ||
+	                             issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b00 ||
+	                             issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
+	                             issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==0;
+	assign issue_req_fpr.valid = issue_req_fadd_fsub.valid  && issue_req_fadd_fsub.ready  ||
+	                             issue_req_fmul.valid       && issue_req_fmul.ready       ||
+	                             issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
+	                             issue_req_fmov.valid       && issue_req_fmov.ready       ||
+	                             issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2:1]==2'b01 ||
+	                             issue_req_itof.valid       && issue_req_itof.ready       ||
+	                             issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
 	generate
 		if (PARENT) begin
 			assign issue_fork = issue_req_fork.valid && issue_req_fork.ready;
@@ -483,18 +458,7 @@ module core #(
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw        : result_fmov;
 
 	//commit
-	commit_ring commit_ring(
-		.clk,
-		.issue_type,
-		.issue_req(issue_req_commit_ring),
-		.commit_req_gpr,
-		.commit_req_fpr,
-		.commit_req_b,
-		.empty(commit_ring_empty),
-		.reset,
-		.in_count
-	);
-	assign reset = commit_req_b.valid && commit_req_b.ready && failure;
+	assign reset = b_commit && failure;
 
 
 
@@ -503,9 +467,9 @@ module core #(
 		.clk,
 		.inst,
 		.arch_read(gpr_arch_read),
-		.issue(issue_gpr),
+		.issue(issue_req_gpr.valid && issue_req_gpr.ready),
 		.issue_tag(gpr_issue_tag),
-		.commit(commit_req_gpr.valid && commit_req_gpr.ready),
+		.commit(gpr_commit),
 		.commit_arch_num(gpr_commit_arch_num),
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
@@ -518,9 +482,9 @@ module core #(
 		.clk,
 		.inst,
 		.arch_read(fpr_arch_read),
-		.issue(issue_fpr),
+		.issue(issue_req_fpr.valid && issue_req_fpr.ready),
 		.issue_tag(fpr_issue_tag),
-		.commit(commit_req_fpr.valid && commit_req_fpr.ready),
+		.commit(fpr_commit),
 		.commit_arch_num(fpr_commit_arch_num),
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
@@ -537,10 +501,12 @@ module core #(
 		.arch_read(gpr_arch_read),
 		.rob_read(gpr_rob_read),
 		.cdb(gpr_cdb),
-		.issue(issue_gpr),
 		.inst,
 		.issue_tag(gpr_issue_tag),
-		.commit_req(commit_req_gpr),
+		.issue_req(issue_req_gpr),
+		.speculating,
+		.sync_b(sync_b_gpr),
+		.commit(gpr_commit),
 		.commit_arch_num(gpr_commit_arch_num),
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
@@ -551,10 +517,12 @@ module core #(
 		.arch_read(fpr_arch_read),
 		.rob_read(fpr_rob_read),
 		.cdb(fpr_cdb),
-		.issue(issue_fpr),
 		.inst,
 		.issue_tag(fpr_issue_tag),
-		.commit_req(commit_req_fpr),
+		.issue_req(issue_req_fpr),
+		.speculating,
+		.sync_b(sync_b_fpr),
+		.commit(fpr_commit),
 		.commit_arch_num(fpr_commit_arch_num),
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
@@ -576,7 +544,7 @@ module core #(
 		.clk,
 		.gpr_issue_tag,
 		.b_count_next,
-		.b_commit(commit_req_b.valid && commit_req_b.ready),
+		.b_commit,
 		.issue_req(issue_req_next),
 		.gc_req,
 		.gpr_cdb_req(gpr_cdb_req_next),
@@ -657,7 +625,7 @@ module core #(
 		.gpr_cdb,
 		.fpr_cdb,
 		.b_count_next,
-		.b_commit(commit_req_b.valid && commit_req_b.ready),
+		.b_commit,
 		.issue_req(issue_req_lw_sw),
 		.gpr_cdb_req(gpr_cdb_req_lw),
 		.fpr_cdb_req(fpr_cdb_req_lw),
@@ -666,7 +634,8 @@ module core #(
 		.failure,
 		.reset,
 		.parallel,
-		.sw_broadcast
+		.sw_broadcast,
+		.sw_empty
 	);
 	ftoi ftoi(
 		.clk,
@@ -710,7 +679,7 @@ module core #(
 				.gpr_read,
 				.gpr_cdb,
 				.b_count_next,
-				.b_commit(commit_req_b.valid && commit_req_b.ready),
+				.b_commit,
 				.issue_req(issue_req_out),
 				.sender_ready,
 				.sender_valid,
@@ -728,7 +697,7 @@ module core #(
 			.fpr_read,
 			.fpr_cdb,
 			.b_count_next,
-			.b_commit(commit_req_b.valid && commit_req_b.ready),
+			.b_commit,
 			.issue_req(issue_req_acc[i]),
 			.acc_req(acc_req[CORE_I*N_ACC+i]),
 			.acc_data(acc_data[CORE_I][i]),
@@ -746,7 +715,14 @@ module core #(
 		.issue_req_jal,
 		.issue_req_fork,
 		.issue_req_end_parent,
-		.commit_req(commit_req_b),
+		.gpr_issue_tag,
+		.fpr_issue_tag,
+		.gpr_commit_tag,
+		.fpr_commit_tag,
+		.speculating,
+		.sync_b_gpr,
+		.sync_b_fpr,
+		.commit(b_commit),
 		.prediction_begin,
 		.pattern_begin,
 		.addr_on_failure_in,

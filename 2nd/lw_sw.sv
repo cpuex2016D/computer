@@ -48,7 +48,8 @@ module lw_sw #(
 	input logic failure,
 	input logic reset,
 	input logic parallel,
-	inout cdb_t sw_broadcast  //tagは使わない
+	inout cdb_t sw_broadcast,  //tagは使わない
+	output logic sw_empty
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -217,6 +218,7 @@ module lw_sw #(
 	assign issue_req.ready = (inst.op[0]==1 || agu_dispatch || !agu_e[N_AGU_ENTRY-1].valid) &&
 	                         (inst.op[2]==1 || lw_dispatch || lw_count < N_LW_ENTRY) &&
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
+	assign sw_empty = sw_count==0;
 	logic[31:0] data_mem_out;
 	data_mem data_mem(
 		.addra(sw_e[0].addr),

@@ -7,9 +7,7 @@ module receiver_wrapper #(
 	input logic in,
 	input logic ready,
 	output logic[31:0] out,
-	output logic valid,
-	input logic reset,
-	input logic[COMMIT_RING_WIDTH-1:0] in_count
+	output logic valid
 );
 	logic[7:0] receiver_out;
 	logic receiver_valid;
@@ -32,9 +30,7 @@ module receiver_wrapper #(
 			buffer[in_pointer][in_pointer_sub*8+:8] <= receiver_out;
 			{in_pointer, in_pointer_sub} <= {in_pointer, in_pointer_sub} + 1;
 		end
-		if (reset) begin
-			out_pointer <= out_pointer - in_count;
-		end else if (valid && ready) begin
+		if (valid && ready) begin
 			out_pointer <= out_pointer + 1;
 		end
 	end
