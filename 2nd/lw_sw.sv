@@ -69,6 +69,9 @@ module lw_sw #(
 	sw_entry sw_e[N_SW_ENTRY-1:0];  //0から順に詰める
 	sw_entry sw_e_updated[N_SW_ENTRY-1:0];
 	sw_entry sw_e_new;
+	logic                     just_stored;
+	logic[DATA_MEM_WIDTH-1:0] just_stored_addr;
+	logic[31:0]               just_stored_data;
 	for (genvar j=0; j<N_AGU_ENTRY; j++) begin
 		initial begin
 			agu_e[j] <= agu_e_invalid;
@@ -160,10 +163,12 @@ module lw_sw #(
 		lw_count <= reset ? 0 : lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
 		lw_e[0] <= lw_e_next[0];
 		lw_e[1] <= lw_e_next[1];
-		result <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr ? sw_e[3].sw_data.data :
-		          lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr ? sw_e[2].sw_data.data :
-		          lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr ? sw_e[1].sw_data.data :
-		          lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr ? sw_e[0].sw_data.data : data_mem_out;
+		result <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr     ? sw_e[3].sw_data.data :
+		          lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr     ? sw_e[2].sw_data.data :
+		          lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr     ? sw_e[1].sw_data.data :
+		          lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr     ? sw_e[0].sw_data.data :
+		          just_stored        && lw_e[0].addr==just_stored_addr ? just_stored_data     :
+		                                                                 data_mem_out;
 	end
 
 	//sw
@@ -209,6 +214,9 @@ module lw_sw #(
 			sw_e[2] <= sw_count>=3 ? sw_e_updated[2] : sw_e_new;
 			sw_e[3] <= sw_count>=4 ? sw_e_updated[3] : sw_e_new;
 		end
+		just_stored      <= sw_commit;
+		just_stored_addr <= sw_e[0].addr;
+		just_stored_data <= sw_e[0].sw_data.data;
 	end
 
 	//general
