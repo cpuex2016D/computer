@@ -97,12 +97,15 @@ module fdiv_fsqrt #(
 	fdiv_core fdiv_core(
 		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
+		.s_axis_a_tvalid(1'b1),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
+		.s_axis_b_tvalid(1'b1),
 		.m_axis_result_tdata(result_fdiv)
 	);
 	fsqrt_core fsqrt_core(
 		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
+		.s_axis_a_tvalid(1'b1),
 		.m_axis_result_tdata(result_fsqrt)
 	);
 endmodule

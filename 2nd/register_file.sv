@@ -98,7 +98,9 @@ module register_file #(
 				fadd_core fadd_core(
 					.aclk(clk),
 					.s_axis_a_tdata(fadd_count[i][0] ? fadd_result[i] : registers[2**REG_WIDTH-N_ACC+i].data),  //バイパス
+					.s_axis_a_tvalid(1'b1),
 					.s_axis_b_tdata(acc_data[dispatched][i]),
+					.s_axis_b_tvalid(1'b1),
 					.m_axis_result_tdata(fadd_result[i])
 				);
 			end

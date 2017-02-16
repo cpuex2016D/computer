@@ -77,6 +77,7 @@ module itof #(
 	itof_core itof_core(
 		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd.data),
+		.s_axis_a_tvalid(1'b1),
 		.m_axis_result_tdata(result)
 	);
 endmodule

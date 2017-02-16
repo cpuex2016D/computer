@@ -107,7 +107,9 @@ module b #(
 	logic[7:0] fcmple_out;
 	fcmple_core fcmple_core(
 		.s_axis_a_tdata(cmp_e[0].opd[0].data),
+		.s_axis_a_tvalid(1'b1),
 		.s_axis_b_tdata(cmp_e[0].opd[1].data),
+		.s_axis_b_tvalid(1'b1),
 		.m_axis_result_tdata(fcmple_out)
 	);
 	wire cmp_result = cmp_e[0].cmp_type==CMP_E   ? cmp_e[0].opd[0].data == cmp_e[0].opd[1].data :

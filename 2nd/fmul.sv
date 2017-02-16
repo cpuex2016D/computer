@@ -88,7 +88,9 @@ module fmul #(
 	fmul_core fmul_core(
 		.aclk(clk),
 		.s_axis_a_tdata(e[dispatched].opd[0].data),
+		.s_axis_a_tvalid(1'b1),
 		.s_axis_b_tdata(e[dispatched].opd[1].data),
+		.s_axis_b_tvalid(1'b1),
 		.m_axis_result_tdata(result)
 	);
 endmodule
