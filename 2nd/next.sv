@@ -18,7 +18,9 @@ module next #(
 	input logic[GC_WIDTH-1:0] gc,
 	output logic[ROB_WIDTH-1:0] tag,
 	output logic[31:0] result,
-	input logic failure
+	input logic failure,
+	output logic[GC_WIDTH-1:0] gc_cur,
+	output logic next_e_exists
 );
 	localparam next_entry e_invalid = '{
 		valid: 0,
@@ -31,6 +33,7 @@ module next #(
 	wire confirmed         = e        .valid && e        .b_count==0;
 	wire confirmed_updated = e_updated.valid && e_updated.b_count==0;
 	wire confirmed_new     = e_new    .valid && e_new    .b_count==0;
+	assign next_e_exists = e.valid;
 
 	assign e_new.valid   = issue_req.valid;
 	assign e_new.tag     = gpr_issue_tag;
@@ -47,6 +50,9 @@ module next #(
 	assign issue_req.ready = !e.valid;
 
 	always_ff @(posedge clk) begin
+		if (dispatch) begin
+			gc_cur <= gc;
+		end
 		if (failure && !confirmed) begin
 			e <= e_invalid;
 		end else begin
