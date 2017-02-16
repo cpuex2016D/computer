@@ -20,9 +20,9 @@ module acc #(
 	input logic failure,
 	input logic[GC_WIDTH-1:0] gc,
 	input logic[GC_WIDTH-1:0] gc_cur,
-	output logic[GC_WIDTH-1:0] gc_stamp
+	output logic[GC_WIDTH-1:0] gc_stamp,
 	input logic dispatch_gc,
-	input logic next_e_exists,
+	input logic next_e_exists
 );
 	localparam acc_entry e_invalid = '{
 		valid: 0,
