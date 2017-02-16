@@ -131,7 +131,7 @@ module lw_sw #(
 	for (genvar j=0; j<N_LW_ENTRY; j++) begin
 		agu_entry agu_e_dispatched;
 		assign agu_e_dispatched = agu_e[agu_dispatched];
-		wire agu_dispatch_to_me = agu_dispatch&&agu_e_dispatched.lw_or_sw==LW&&agu_e_dispatched.pointer==j;
+		wire agu_dispatch_to_me = agu_dispatch&&agu_e_dispatched.lw_or_sw==LW&&agu_e_dispatched.pointer[0]==j;
 		assign lw_e_updated[j].gpr_or_fpr = lw_e[j].gpr_or_fpr;
 		assign lw_e_updated[j].tag        = lw_e[j].tag;
 		assign lw_e_updated[j].addr_valid = lw_e[j].addr_valid || agu_dispatch_to_me;
