@@ -672,7 +672,8 @@ module core #(
 				.result(result_in),
 				.receiver_out,
 				.receiver_valid,
-				.receiver_ready
+				.receiver_ready,
+				.speculating
 			);
 			out out(
 				.clk,
