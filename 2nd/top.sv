@@ -47,30 +47,28 @@ module top #(
 	logic[GC_WIDTH-1:0] gc_plus[N_CORE+1];
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
 	logic[GD_WIDTH-1:0] gd;
-	req_if gc_req[N_CORE]();
-	req_if acc_req[N_CORE*N_ACC]();
+	logic gc_req_valid[N_CORE];
+	wire acc_req_valid[N_CORE][N_ACC];
+	wire acc_req_ready[N_CORE][N_ACC];
 	wire[31:0] acc_data[N_CORE][N_ACC];
 	wire ending[1:N_CORE-1];
 	wire all_ending = ending[1]&&ending[2]&&ending[3];
 
 
 
-	for (genvar i=0; i<N_CORE; i++) begin
-		assign gc_req[i].ready = 1;
-	end
 	for (genvar i=0; i<N_CORE+1; i++) begin
 		assign gc_plus[i] = $signed(gc) + i * $signed(gd);
 	end
 	assign gc_assign[0] = gc_plus[0];
-	assign gc_assign[1] = gc_plus[gc_req[0].valid];
-	assign gc_assign[2] = gc_plus[gc_req[0].valid+gc_req[1].valid];
-	assign gc_assign[3] = gc_plus[gc_req[0].valid+gc_req[1].valid+gc_req[2].valid];
+	assign gc_assign[1] = gc_plus[gc_req_valid[0]];
+	assign gc_assign[2] = gc_plus[gc_req_valid[0]+gc_req_valid[1]];
+	assign gc_assign[3] = gc_plus[gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]];
 	always_ff @(posedge clk) begin
 		if (issue_fork) begin
 			gc <= fork_gc;
 			gd <= fork_gd;
 		end else begin
-			gc <= gc_plus[gc_req[0].valid+gc_req[1].valid+gc_req[2].valid+gc_req[3].valid];
+			gc <= gc_plus[gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3]];
 		end
 	end
 
@@ -92,8 +90,9 @@ module top #(
 		.gpr_arch_broadcast,
 		.fpr_arch_broadcast,
 		.gc(gc_assign[0]),
-		.gc_req(gc_req[0]),
-		.acc_req,
+		.gc_req_valid(gc_req_valid[0]),
+		.acc_req_valid,
+		.acc_req_ready,
 		.acc_data,
 		.ending(all_ending)
 	);
@@ -109,8 +108,9 @@ module top #(
 			.gpr_arch_broadcast,
 			.fpr_arch_broadcast,
 			.gc(gc_assign[i]),
-			.gc_req(gc_req[i]),
-			.acc_req,
+			.gc_req_valid(gc_req_valid[i]),
+			.acc_req_valid,
+			.acc_req_ready,
 			.acc_data,
 			.ending(ending[i])
 		);

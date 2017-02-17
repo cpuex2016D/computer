@@ -18,8 +18,9 @@ module core #(
 	inout logic[31:0] gpr_arch_broadcast[2**REG_WIDTH],
 	inout logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC],
 	input logic[GC_WIDTH-1:0] gc,
-	req_if gc_req,
-	req_if acc_req[N_CORE*N_ACC],
+	output logic gc_req_valid,
+	inout logic acc_req_valid[N_CORE][N_ACC],
+	inout logic acc_req_ready[N_CORE][N_ACC],
 	inout logic[31:0] acc_data[N_CORE][N_ACC],
 	inout logic ending  //子コアは自身が終了していることを示し、親コアは自身以外の全子コアが終了していることを受け取る
 );
@@ -517,7 +518,6 @@ module core #(
 		.commit_tag(gpr_commit_tag),
 		.commit_data(gpr_commit_data),
 		.reset,
-		.acc_req,  //これがないと合成できない
 		.issue_fork,
 		.arch_broadcast(gpr_arch_broadcast)
 	);
@@ -532,7 +532,8 @@ module core #(
 		.commit_tag(fpr_commit_tag),
 		.commit_data(fpr_commit_data),
 		.reset,
-		.acc_req,
+		.acc_req_valid,
+		.acc_req_ready,
 		.acc_data,
 		.acc_all_valid_parallel,
 		.no_acc_req,
@@ -585,7 +586,7 @@ module core #(
 		.b_count_next,
 		.b_commit(commit_req_b.valid && commit_req_b.ready),
 		.issue_req(issue_req_next),
-		.gc_req,
+		.gc_req_valid,
 		.gpr_cdb_req(gpr_cdb_req_next),
 		.gc,
 		.tag(tag_next),
@@ -734,7 +735,8 @@ module core #(
 			.b_count_next,
 			.b_commit(commit_req_b.valid && commit_req_b.ready),
 			.issue_req(issue_req_acc[i]),
-			.acc_req(acc_req[CORE_I*N_ACC+i]),
+			.acc_req_valid(acc_req_valid[CORE_I][i]),
+			.acc_req_ready(acc_req_ready[CORE_I][i]),
 			.acc_data(acc_data[CORE_I][i]),
 			.failure
 		);

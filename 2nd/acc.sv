@@ -14,7 +14,8 @@ module acc #(
 	input logic[$clog2(N_B_ENTRY):0] b_count_next,
 	input logic b_commit,
 	req_if issue_req,
-	req_if acc_req,
+	output logic acc_req_valid,
+	input logic acc_req_ready,
 	output logic[31:0] acc_data,
 	input logic failure
 );
@@ -43,9 +44,9 @@ module acc #(
 	assign e_updated.opd.data  = e.opd.valid ? e.opd.data : fpr_cdb.data;
 	assign e_updated.b_count   = e.b_count==0 ? 0 : e.b_count-b_commit;
 
-	assign acc_req.valid = confirmed && e.opd.valid;
+	assign acc_req_valid = confirmed && e.opd.valid;
 	assign acc_data = e.opd.data;
-	wire dispatch = acc_req.valid && acc_req.ready;
+	wire dispatch = acc_req_valid && acc_req_ready;
 	assign issue_req.ready = dispatch || !e.valid;
 
 	always_ff @(posedge clk) begin
