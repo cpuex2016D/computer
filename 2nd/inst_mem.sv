@@ -20,10 +20,10 @@ module inst_mem #(
 	input logic[INST_MEM_WIDTH-1:0] return_addr
 );
 	(* ram_style = "distributed" *) logic[INST_WIDTH-1:0] inst_mem[2**INST_MEM_WIDTH];
-	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH];
+	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH] = '{default: 0};
 	logic[GH_WIDTH-1:0] gh = 0;
 	initial begin
-		$readmemh("text", inst_mem);
+		$readmemh("../../../fork.text.hex", inst_mem);
 		inst.bits <= PARENT ? {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]} : 32'h7c000000;
 	end
 

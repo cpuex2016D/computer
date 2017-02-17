@@ -11,6 +11,9 @@ module data_mem #(
 	input logic wea
 );
 	logic[31:0] data_mem[2**DATA_MEM_WIDTH];
+	initial begin
+		$readmemh("../../../fork.data.hex", data_mem);
+	end
 
 	always @(posedge clka) begin
 		if (wea) begin

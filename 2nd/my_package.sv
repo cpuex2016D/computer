@@ -18,7 +18,7 @@ package my_package;
 	parameter N_CORE = 4;  //register_file, topのみparameterizeされていない
 
 	//初期値設定
-	parameter PC_INIT = 6098;  //プログラム毎に変更
+	parameter PC_INIT = 6;  //プログラム毎に変更
 	parameter REG_SP = 30;
 	parameter REG_HP = 31;
 	parameter REG_SP_INIT = 32'h1ffff;

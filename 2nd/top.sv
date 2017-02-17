@@ -36,21 +36,21 @@ module top #(
 	//IBUFGDS IBUFGDS(.I(CLK_P), .IB(CLK_N), .O(clk));
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
-	logic parallel;
-	cdb_t sw_broadcast;
-	logic issue_fork;
+	wire parallel;
+	wire cdb_t sw_broadcast;
+	wire issue_fork;
 	logic[GC_WIDTH-1:0] fork_gc;
 	logic[GD_WIDTH-1:0] fork_gd;
-	logic[31:0] gpr_arch_broadcast[2**REG_WIDTH];
-	logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC];
+	wire[31:0] gpr_arch_broadcast[2**REG_WIDTH];
+	wire[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC];
 	logic[GC_WIDTH-1:0] gc;
 	logic[GC_WIDTH-1:0] gc_plus[N_CORE+1];
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
 	logic[GD_WIDTH-1:0] gd;
 	req_if gc_req[N_CORE]();
 	req_if acc_req[N_CORE*N_ACC]();
-	logic[31:0] acc_data[N_CORE][N_ACC];
-	logic ending[1:N_CORE-1];
+	wire[31:0] acc_data[N_CORE][N_ACC];
+	wire ending[1:N_CORE-1];
 	wire all_ending = ending[1]&&ending[2]&&ending[3];
 
 

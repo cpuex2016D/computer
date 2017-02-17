@@ -37,7 +37,7 @@ module register_file #(
 		tag: {ROB_WIDTH{1'bx}},
 		data: REG_HP_INIT
 	};
-	cdb_t registers[2**REG_WIDTH-(!PARENT&&FPR)*N_ACC] = '{REG_SP: (FPR ? init_default : init_sp), REG_HP: (FPR ? init_default : init_hp), default: init_default};
+	cdb_t registers[2**REG_WIDTH-(!PARENT&&FPR)*N_ACC] = '{default: init_default};
 	logic[$clog2(LATENCY_FADD):0] fadd_count[N_ACC] = '{default: 0};
 	logic[31:0] fadd_result[N_ACC];
 
