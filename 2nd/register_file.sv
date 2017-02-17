@@ -19,7 +19,8 @@ module register_file #(
 	output logic acc_all_valid_parallel,
 	output logic no_acc_req,
 	input logic issue_fork,
-	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC]
+	input logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC],
+	output logic[31:0] arch_broadcast_out[2**REG_WIDTH-FPR*N_ACC]
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t init_default = '{
@@ -71,7 +72,7 @@ module register_file #(
 	generate
 		if (PARENT) begin
 			for (genvar i=0; i<2**REG_WIDTH-FPR*N_ACC; i++) begin
-				assign arch_broadcast[i] = registers[i].data;
+				assign arch_broadcast_out[i] = registers[i].data;
 			end
 		end
 		if (PARENT && FPR) begin

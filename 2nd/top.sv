@@ -85,17 +85,23 @@ module top #(
 		.UART_TX,
 		.LED,
 		.parallel,
+		.parallel_out(parallel),
 		.sw_broadcast,
+		.sw_broadcast_out(sw_broadcast),
 		.issue_fork,
+		.issue_fork_out(issue_fork),
 		.fork_gc,
 		.fork_gd,
 		.gpr_arch_broadcast,
+		.gpr_arch_broadcast_out(gpr_arch_broadcast),
 		.fpr_arch_broadcast,
+		.fpr_arch_broadcast_out(fpr_arch_broadcast),
 		.gc(gc_assign[0]),
 		.gc_req(gc_req[0]),
 		.acc_req,
 		.acc_data,
-		.ending(all_ending)
+		.acc_data_out(acc_data[0]),
+		.all_ending
 	);
 	for (genvar i=1; i<N_CORE; i++) begin
 		core #(
@@ -111,7 +117,7 @@ module top #(
 			.gc(gc_assign[i]),
 			.gc_req(gc_req[i]),
 			.acc_req,
-			.acc_data,
+			.acc_data_out(acc_data[i]),
 			.ending(ending[i])
 		);
 	end

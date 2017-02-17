@@ -10,18 +10,25 @@ module core #(
 	input logic UART_RX,
 	output logic UART_TX,
 	output logic[7:0] LED,
-	inout logic parallel,
-	inout cdb_t sw_broadcast,
-	inout logic issue_fork,
+	input logic parallel,
+	output logic parallel_out,
+	input cdb_t sw_broadcast,
+	output cdb_t sw_broadcast_out,
+	input logic issue_fork,
+	output logic issue_fork_out,
 	output logic[GC_WIDTH-1:0] fork_gc,
 	output logic[GD_WIDTH-1:0] fork_gd,
-	inout logic[31:0] gpr_arch_broadcast[2**REG_WIDTH],
-	inout logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC],
+	input logic[31:0] gpr_arch_broadcast[2**REG_WIDTH],
+	output logic[31:0] gpr_arch_broadcast_out[2**REG_WIDTH],
+	input logic[31:0] fpr_arch_broadcast[2**REG_WIDTH-N_ACC],
+	output logic[31:0] fpr_arch_broadcast_out[2**REG_WIDTH-N_ACC],
 	input logic[GC_WIDTH-1:0] gc,
 	req_if gc_req,
 	req_if acc_req[N_CORE*N_ACC],
-	inout logic[31:0] acc_data[N_CORE][N_ACC],
-	inout logic ending  //子コアは自身が終了していることを示し、親コアは自身以外の全子コアが終了していることを受け取る
+	input logic[31:0] acc_data[N_CORE][N_ACC],
+	output logic[31:0] acc_data_out[N_ACC],
+	output logic ending,
+	input logic all_ending
 );
 	////////////////////
 	//LED
@@ -38,7 +45,6 @@ module core #(
 	//LED
 
 	//global
-	logic parallel_reg = 0;
 
 	//IO
 	logic[31:0] receiver_out;
@@ -209,12 +215,11 @@ module core #(
 	//global
 	generate
 		if (PARENT) begin
-			assign parallel = parallel_reg;
 			assign fork_gc = gpr_arch_read[0].data;
 			assign fork_gd = gpr_arch_read[1].data;
 			always_ff @(posedge clk) begin
 				if (issue_req_fork.valid&&issue_req_fork.ready || issue_req_end_parent.valid&&issue_req_end_parent.ready) begin
-					parallel_reg <= !parallel;
+					parallel_out <= !parallel;
 				end
 			end
 		end else begin
@@ -317,7 +322,7 @@ module core #(
 	assign issue_req_jal.valid        = inst.is_jal;
 	assign issue_req_b.valid          = issue_req_commit_ring.ready && inst.is_b;
 	assign issue_req_fork.ready       = commit_ring_empty;
-	assign issue_req_end_parent.ready = commit_ring_empty && ending && acc_all_valid_parallel && no_acc_req;
+	assign issue_req_end_parent.ready = commit_ring_empty && all_ending && acc_all_valid_parallel && no_acc_req;
 	assign issue_type = inst.is_add_sub ? COMMIT_GPR :
 	                    inst.is_next ? COMMIT_GPR :
 	                    inst.is_mov ? COMMIT_GPR :
@@ -359,7 +364,7 @@ module core #(
 	                   issue_req_in.valid         && issue_req_in.ready         && inst.op[0]==1;
 	generate
 		if (PARENT) begin
-			assign issue_fork = issue_req_fork.valid && issue_req_fork.ready;
+			assign issue_fork_out = issue_req_fork.valid && issue_req_fork.ready;
 		end
 	endgenerate
 	//read
@@ -519,7 +524,8 @@ module core #(
 		.reset,
 		.acc_req,  //これがないと合成できない
 		.issue_fork,
-		.arch_broadcast(gpr_arch_broadcast)
+		.arch_broadcast(gpr_arch_broadcast),
+		.arch_broadcast_out(gpr_arch_broadcast_out)
 	);
 	register_file #(.PARENT(PARENT), .FPR(1)) fpr_arch(
 		.clk,
@@ -537,7 +543,8 @@ module core #(
 		.acc_all_valid_parallel,
 		.no_acc_req,
 		.issue_fork,
-		.arch_broadcast(fpr_arch_broadcast)
+		.arch_broadcast(fpr_arch_broadcast),
+		.arch_broadcast_out(fpr_arch_broadcast_out)
 	);
 	rob gpr_rob(
 		.clk,
@@ -671,7 +678,8 @@ module core #(
 		.result(result_lw),
 		.reset,
 		.parallel,
-		.sw_broadcast
+		.sw_broadcast,
+		.sw_broadcast_out
 	);
 	ftoi ftoi(
 		.clk,
@@ -735,7 +743,7 @@ module core #(
 			.b_commit(commit_req_b.valid && commit_req_b.ready),
 			.issue_req(issue_req_acc[i]),
 			.acc_req(acc_req[CORE_I*N_ACC+i]),
-			.acc_data(acc_data[CORE_I][i]),
+			.acc_data(acc_data_out[i]),
 			.failure
 		);
 	end

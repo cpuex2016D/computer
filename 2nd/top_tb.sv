@@ -51,6 +51,7 @@ module top_tb;
 	initial begin
 		fd_w = $fopen("../../../o_sim", "wb");
 //		fd_w = $fopen("../../../../o_sim", "wb");
+		top.parent.parallel_out <= 0;
 
 		//毎回変える
 //		$readmemh("../../../minrt_pc0_text.hex", top.inst_mem.inst_mem);
