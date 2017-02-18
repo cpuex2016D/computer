@@ -13,7 +13,7 @@ module next #(
 	input logic[$clog2(N_B_ENTRY):0] b_count_next,
 	input logic b_commit,
 	req_if issue_req,
-	req_if gc_req,
+	output logic gc_req_valid,
 	req_if gpr_cdb_req,
 	input logic[GC_WIDTH-1:0] gc,
 	output logic[ROB_WIDTH-1:0] tag,
@@ -42,8 +42,8 @@ module next #(
 	assign e_updated.tag     = e.tag;
 	assign e_updated.b_count = e.b_count==0 ? 0 : e.b_count-b_commit;
 
-	assign gc_req.valid = gpr_cdb_req.ready && !failure && (confirmed_updated || confirmed_new);
-	wire dispatch = gc_req.valid && gc_req.ready;
+	assign gc_req_valid = gpr_cdb_req.ready && !failure && (confirmed_updated || confirmed_new);
+	wire dispatch = gc_req_valid;
 	assign gpr_cdb_req.valid = dispatch;
 	assign tag = e.valid ? e_updated.tag : e_new.tag;
 	//assign issue_req.ready = dispatch || !e.valid;  //next命令が次々に来ることはおそらくない

@@ -51,6 +51,7 @@ module top_tb;
 	initial begin
 		fd_w = $fopen("../../../o_sim", "wb");
 //		fd_w = $fopen("../../../../o_sim", "wb");
+		top.parent.parallel_out <= 0;
 
 		top.pc <= 0;
 <<<<<<< HEAD
