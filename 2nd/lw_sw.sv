@@ -45,7 +45,8 @@ module lw_sw #(
 	output logic[31:0] result,
 	input logic reset,
 	input logic parallel,
-	inout cdb_t sw_broadcast  //tagは使わない
+	input cdb_t sw_broadcast,  //tagは使わない
+	output cdb_t sw_broadcast_out  //tagは使わない
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -238,8 +239,8 @@ module lw_sw #(
 	);
 	generate
 		if (PARENT) begin
-			assign sw_broadcast.valid = !parallel && sw_commit;
-			assign sw_broadcast.data  = sw_e[0].sw_data.data;
+			assign sw_broadcast_out.valid = !parallel && sw_commit;
+			assign sw_broadcast_out.data  = sw_e[0].sw_data.data;
 		end
 	endgenerate
 endmodule

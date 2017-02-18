@@ -14,12 +14,14 @@ module register_file #(
 	input logic[ROB_WIDTH-1:0] commit_tag,
 	input logic[31:0] commit_data,
 	input logic reset,
-	req_if acc_req[N_CORE*N_ACC],
+	input logic acc_req_valid[N_CORE][N_ACC],
+	output logic acc_req_ready[N_CORE][N_ACC],
 	input logic[31:0] acc_data[N_CORE][N_ACC],
 	output logic acc_all_valid_parallel,
 	output logic no_acc_req,
 	input logic issue_fork,
-	inout logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC]
+	input logic[31:0] arch_broadcast[2**REG_WIDTH-FPR*N_ACC],
+	output logic[31:0] arch_broadcast_out[2**REG_WIDTH-FPR*N_ACC]
 );
 	localparam LATENCY_FADD = 6;
 	localparam cdb_t init_default = '{
@@ -71,27 +73,27 @@ module register_file #(
 	generate
 		if (PARENT) begin
 			for (genvar i=0; i<2**REG_WIDTH-FPR*N_ACC; i++) begin
-				assign arch_broadcast[i] = registers[i].data;
+				assign arch_broadcast_out[i] = registers[i].data;
 			end
 		end
 		if (PARENT && FPR) begin
 			assign acc_all_valid_parallel = fadd_count[0]<=1 && fadd_count[1]<=1 && fadd_count[2]<=1;
-			assign no_acc_req = !acc_req[0].valid && !acc_req[ 1].valid && !acc_req[ 2].valid &&
-			                    !acc_req[3].valid && !acc_req[ 4].valid && !acc_req[ 5].valid &&
-			                    !acc_req[6].valid && !acc_req[ 7].valid && !acc_req[ 8].valid &&
-			                    !acc_req[9].valid && !acc_req[10].valid && !acc_req[11].valid;
+			assign no_acc_req = !acc_req_valid[0][0] && !acc_req_valid[0][1] && !acc_req_valid[0][2] &&
+			                    !acc_req_valid[1][0] && !acc_req_valid[1][1] && !acc_req_valid[1][2] &&
+			                    !acc_req_valid[2][0] && !acc_req_valid[2][1] && !acc_req_valid[2][2] &&
+			                    !acc_req_valid[3][0] && !acc_req_valid[3][1] && !acc_req_valid[3][2];
 			for (genvar i=0; i<N_ACC; i++) begin
-				assign acc_req[0*N_ACC+i].ready = fadd_count[i]<=1;
-				assign acc_req[1*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid;
-				assign acc_req[2*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid && !acc_req[1*N_ACC+i].valid;
-				assign acc_req[3*N_ACC+i].ready = fadd_count[i]<=1 && !acc_req[0*N_ACC+i].valid && !acc_req[1*N_ACC+i].valid && !acc_req[2*N_ACC+i].valid;
-				wire[1:0] dispatched = acc_req[0*N_ACC+i].valid ? 0 :
-				                       acc_req[1*N_ACC+i].valid ? 1 :
-				                       acc_req[2*N_ACC+i].valid ? 2 : 3;
-				wire dispatch = acc_req[0*N_ACC+i].valid&&acc_req[0*N_ACC+i].ready ||
-				                acc_req[1*N_ACC+i].valid&&acc_req[1*N_ACC+i].ready ||
-				                acc_req[2*N_ACC+i].valid&&acc_req[2*N_ACC+i].ready ||
-				                acc_req[3*N_ACC+i].valid&&acc_req[3*N_ACC+i].ready;
+				assign acc_req_ready[0][i] = fadd_count[i]<=1;
+				assign acc_req_ready[1][i] = fadd_count[i]<=1 && !acc_req_valid[0][i];
+				assign acc_req_ready[2][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i];
+				assign acc_req_ready[3][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i] && !acc_req_valid[2][i];
+				wire[1:0] dispatched = acc_req_valid[0][i] ? 0 :
+				                       acc_req_valid[1][i] ? 1 :
+				                       acc_req_valid[2][i] ? 2 : 3;
+				wire dispatch = acc_req_valid[0][i]&&acc_req_ready[0][i] ||
+				                acc_req_valid[1][i]&&acc_req_ready[1][i] ||
+				                acc_req_valid[2][i]&&acc_req_ready[2][i] ||
+				                acc_req_valid[3][i]&&acc_req_ready[3][i];
 				always_ff @(posedge clk) begin
 					fadd_count[i] <= dispatch ? LATENCY_FADD : fadd_count[i]==0 ? 0 : fadd_count[i]-1;
 				end

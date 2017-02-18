@@ -47,30 +47,34 @@ module top #(
 	logic[GC_WIDTH-1:0] gc_plus[N_CORE+1];
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
 	logic[GD_WIDTH-1:0] gd;
-	req_if gc_req[N_CORE]();
-	req_if acc_req[N_CORE*N_ACC]();
 	logic[31:0] acc_data[N_CORE][N_ACC];
 	logic ending[1:N_CORE-1];
+	logic gc_req_valid[N_CORE];
+	logic[$clog2(N_CORE):0] gc_req_valid_sum[N_CORE+1];
+	logic acc_req_valid[N_CORE][N_ACC];
+	logic acc_req_ready[N_CORE][N_ACC];
 	wire all_ending = ending[1]&&ending[2]&&ending[3];
 
 
 
-	for (genvar i=0; i<N_CORE; i++) begin
-		assign gc_req[i].ready = 1;
-	end
 	for (genvar i=0; i<N_CORE+1; i++) begin
 		assign gc_plus[i] = $signed(gc) + i * $signed(gd);
 	end
-	assign gc_assign[0] = gc_plus[0];
-	assign gc_assign[1] = gc_plus[gc_req[0].valid];
-	assign gc_assign[2] = gc_plus[gc_req[0].valid+gc_req[1].valid];
-	assign gc_assign[3] = gc_plus[gc_req[0].valid+gc_req[1].valid+gc_req[2].valid];
+	assign gc_req_valid_sum[0] = 0;
+	assign gc_req_valid_sum[1] = gc_req_valid[0];
+	assign gc_req_valid_sum[2] = gc_req_valid[0]+gc_req_valid[1];
+	assign gc_req_valid_sum[3] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2];
+	assign gc_req_valid_sum[4] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3];
+	assign gc_assign[0] = gc_plus[gc_req_valid_sum[0]];
+	assign gc_assign[1] = gc_plus[gc_req_valid_sum[1]];
+	assign gc_assign[2] = gc_plus[gc_req_valid_sum[2]];
+	assign gc_assign[3] = gc_plus[gc_req_valid_sum[3]];
 	always_ff @(posedge clk) begin
 		if (issue_fork) begin
 			gc <= fork_gc;
 			gd <= fork_gd;
 		end else begin
-			gc <= gc_plus[gc_req[0].valid+gc_req[1].valid+gc_req[2].valid+gc_req[3].valid];
+			gc <= gc_plus[gc_req_valid_sum[4]];
 		end
 	end
 
@@ -85,17 +89,26 @@ module top #(
 		.UART_TX,
 		.LED,
 		.parallel,
+		.parallel_out(parallel),
 		.sw_broadcast,
+		.sw_broadcast_out(sw_broadcast),
 		.issue_fork,
+		.issue_fork_out(issue_fork),
 		.fork_gc,
 		.fork_gd,
 		.gpr_arch_broadcast,
+		.gpr_arch_broadcast_out(gpr_arch_broadcast),
 		.fpr_arch_broadcast,
+		.fpr_arch_broadcast_out(fpr_arch_broadcast),
 		.gc(gc_assign[0]),
-		.gc_req(gc_req[0]),
-		.acc_req,
+		.gc_req_valid(gc_req_valid[0]),
+		.acc_req_valid,
+		.acc_req_valid_out(acc_req_valid[0]),
+		.acc_req_ready(acc_req_ready[0]),
+		.acc_req_ready_out(acc_req_ready),
 		.acc_data,
-		.ending(all_ending)
+		.acc_data_out(acc_data[0]),
+		.all_ending
 	);
 	for (genvar i=1; i<N_CORE; i++) begin
 		core #(
@@ -109,9 +122,10 @@ module top #(
 			.gpr_arch_broadcast,
 			.fpr_arch_broadcast,
 			.gc(gc_assign[i]),
-			.gc_req(gc_req[i]),
-			.acc_req,
-			.acc_data,
+			.gc_req_valid(gc_req_valid[i]),
+			.acc_req_valid_out(acc_req_valid[i]),
+			.acc_req_ready(acc_req_ready[i]),
+			.acc_data_out(acc_data[i]),
 			.ending(ending[i])
 		);
 	end
