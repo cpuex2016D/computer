@@ -5,8 +5,7 @@ package my_package;
 	parameter INST_MEM_WIDTH = 14;
 	parameter DATA_MEM_WIDTH = 17;
 	parameter REG_WIDTH = 5;
-	parameter ROB_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
-	parameter COMMIT_RING_WIDTH = 4;  //commit_ring.in_countのみparameterizeされていない
+	parameter ROB_WIDTH = 4;
 	parameter PATTERN_WIDTH = INST_MEM_WIDTH;
 	parameter GH_WIDTH = 10;
 	parameter ADDR_STACK_WIDTH = 4;
@@ -39,18 +38,6 @@ package my_package;
 		logic[REG_WIDTH-1:0] arch_num;
 		logic[31:0] data;
 	} rob_entry;
-
-	typedef enum logic[2:0] {
-		 COMMIT_GPR,
-		 COMMIT_FPR,
-		 COMMIT_GPR_IN,
-		 COMMIT_FPR_IN,
-		 COMMIT_SW,
-		 COMMIT_OUT,
-		 COMMIT_B,
-		 COMMIT_NULL,
-		 COMMIT_X = 3'bx
-	} commit_ring_entry;
 
 	typedef enum logic {LOAD, EXEC} mode_t;
 endpackage

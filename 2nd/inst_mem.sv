@@ -14,7 +14,7 @@ module inst_mem #(
 	output logic[1:0] prediction_begin,
 	input logic[1:0] prediction_end,
 	input logic failure,
-	input logic commit_b,
+	input logic b_commit,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
 	input logic[INST_MEM_WIDTH-1:0] return_addr
@@ -55,7 +55,7 @@ module inst_mem #(
 		end
 
 		pattern_begin <= pattern;
-		if (commit_b) begin
+		if (b_commit) begin
 			gh <= {gh[GH_WIDTH-2:0], taken};
 			pht[pattern_end] <= prediction_updated;
 		end
