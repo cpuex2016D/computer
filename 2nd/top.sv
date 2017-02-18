@@ -110,6 +110,7 @@ module top #(
 		.acc_data,
 		.acc_data_out(acc_data[0]),
 		.gc_stamp,
+		.gc_stamp_out(gc_stamp[0]),
 		.gd_sign(gd[GD_WIDTH-1]),
 		.all_ending
 	);
@@ -129,7 +130,7 @@ module top #(
 			.acc_req_valid_out(acc_req_valid[i]),
 			.acc_req_ready(acc_req_ready[i]),
 			.acc_data_out(acc_data[i]),
-			.gc_stamp,
+			.gc_stamp_out(gc_stamp[i]),
 			.gd_sign(gd[GD_WIDTH-1]),
 			.ending(ending[i])
 		);

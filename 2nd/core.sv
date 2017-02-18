@@ -30,7 +30,8 @@ module core #(
 	output logic acc_req_ready_out[N_CORE][N_ACC],
 	input logic[31:0] acc_data[N_CORE][N_ACC],
 	output logic[31:0] acc_data_out[N_ACC],
-	inout logic[GC_WIDTH-1:0] gc_stamp[N_CORE][N_ACC],
+	input logic[GC_WIDTH-1:0] gc_stamp[N_CORE][N_ACC],
+	output logic[GC_WIDTH-1:0] gc_stamp_out[N_ACC],
 	input logic gd_sign,
 	output logic ending,
 	input logic all_ending
@@ -760,7 +761,7 @@ module core #(
 			.failure,
 			.gc,
 			.gc_cur,
-			.gc_stamp(gc_stamp[CORE_I][i]),
+			.gc_stamp(gc_stamp_out[i]),
 			.dispatch_gc(gc_req_valid),
 			.next_e_exists
 		);
