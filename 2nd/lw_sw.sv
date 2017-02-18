@@ -212,8 +212,16 @@ module lw_sw #(
 
 	always_ff @(posedge clk) begin
 		sw_count <= failure ?
-		            (sw_e[0].b_count==0)+(sw_e[1].b_count==0)+(sw_e[2].b_count==0)+(sw_e[3].b_count==0)-sw_commit :
-		            sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
+		              (sw_count>=1 && sw_e[0].b_count==0 ?
+		                 sw_count>=2 && sw_e[1].b_count==0 ?
+		                   sw_count>=3 && sw_e[2].b_count==0 ?
+		                     sw_count>=4 && sw_e[3].b_count==0 ?
+		                       4 :
+		                       3 :
+		                     2 :
+		                   1 :
+		                 0) - sw_commit :
+		              sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
 		if (sw_commit) begin
 			sw_e[0] <= sw_count>=2 ? sw_e_updated[1] : sw_e_new;
 			sw_e[1] <= sw_count>=3 ? sw_e_updated[2] : sw_e_new;
