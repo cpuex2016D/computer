@@ -253,7 +253,8 @@ module core #(
 	endgenerate
 
 	//inst_mem
-	assign inst_mem_stall = (inst.is_add_sub    ||
+	assign inst_mem_stall = failure ||
+	                        (inst.is_add_sub    ||
 	                         inst.is_next       ||
 	                         inst.is_mov        ||
 	                         inst.is_lw_sw      && inst.op[2:1]==2'b00 ||
@@ -305,25 +306,25 @@ module core #(
 	);
 
 	//issue
-	assign issue_req_add_sub.valid    = issue_req_gpr.ready && inst.is_add_sub;
-	assign issue_req_next.valid       = issue_req_gpr.ready && inst.is_next;
-	assign issue_req_mov.valid        = issue_req_gpr.ready && inst.is_mov;
-	assign issue_req_fadd_fsub.valid  = issue_req_fpr.ready && inst.is_fadd_fsub;
-	assign issue_req_fmul.valid       = issue_req_fpr.ready && inst.is_fmul;
-	assign issue_req_fdiv_fsqrt.valid = issue_req_fpr.ready && inst.is_fdiv_fsqrt;
-	assign issue_req_fmov.valid       = issue_req_fpr.ready && inst.is_fmov;
-	assign issue_req_lw_sw.valid      = (inst.op[2]==1 || inst.op[1]==0 && issue_req_gpr.ready || inst.op[1]==1 && issue_req_fpr.ready) && inst.is_lw_sw;
-	assign issue_req_ftoi.valid       = issue_req_gpr.ready && inst.is_ftoi;
-	assign issue_req_itof.valid       = issue_req_fpr.ready && inst.is_itof;
-	assign issue_req_in.valid         = (inst.op[0]==0 && issue_req_gpr.ready || inst.op[0]==1 && issue_req_fpr.ready) && inst.is_in && PARENT;
-	assign issue_req_out.valid        = inst.is_out && PARENT;
+	assign issue_req_add_sub.valid    = !failure && issue_req_gpr.ready && inst.is_add_sub;
+	assign issue_req_next.valid       = !failure && issue_req_gpr.ready && inst.is_next;
+	assign issue_req_mov.valid        = !failure && issue_req_gpr.ready && inst.is_mov;
+	assign issue_req_fadd_fsub.valid  = !failure && issue_req_fpr.ready && inst.is_fadd_fsub;
+	assign issue_req_fmul.valid       = !failure && issue_req_fpr.ready && inst.is_fmul;
+	assign issue_req_fdiv_fsqrt.valid = !failure && issue_req_fpr.ready && inst.is_fdiv_fsqrt;
+	assign issue_req_fmov.valid       = !failure && issue_req_fpr.ready && inst.is_fmov;
+	assign issue_req_lw_sw.valid      = !failure && (inst.op[2]==1 || inst.op[1]==0 && issue_req_gpr.ready || inst.op[1]==1 && issue_req_fpr.ready) && inst.is_lw_sw;
+	assign issue_req_ftoi.valid       = !failure && issue_req_gpr.ready && inst.is_ftoi;
+	assign issue_req_itof.valid       = !failure && issue_req_fpr.ready && inst.is_itof;
+	assign issue_req_in.valid         = !failure && (inst.op[0]==0 && issue_req_gpr.ready || inst.op[0]==1 && issue_req_fpr.ready) && inst.is_in && PARENT;
+	assign issue_req_out.valid        = !failure && inst.is_out && PARENT;
 	for (genvar i=0; i<N_ACC; i++) begin
-		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
+		assign issue_req_acc[i].valid   = !failure && inst.is_acc && inst.r0[i];
 	end
-	assign issue_req_fork.valid       = inst.is_fork_end && !parallel && PARENT;
-	assign issue_req_end_parent.valid = inst.is_fork_end &&  parallel && PARENT;
-	assign issue_req_jal.valid        = inst.is_jal;
-	assign issue_req_b.valid          = inst.is_b;
+	assign issue_req_fork.valid       = !failure && inst.is_fork_end && !parallel && PARENT;
+	assign issue_req_end_parent.valid = !failure && inst.is_fork_end &&  parallel && PARENT;
+	assign issue_req_jal.valid        = !failure && inst.is_jal;
+	assign issue_req_b.valid          = !failure && inst.is_b;
 	assign issue_req_fork.ready       = !speculating && gpr_issue_tag==gpr_commit_tag && fpr_issue_tag==fpr_commit_tag && sw_empty;
 	assign issue_req_end_parent.ready = !speculating && all_ending && acc_all_valid_parallel && no_acc_req;
 	assign issue_req_gpr.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
