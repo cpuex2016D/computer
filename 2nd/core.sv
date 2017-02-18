@@ -12,8 +12,10 @@ module core #(
 	output logic[7:0] LED,
 	input logic parallel,
 	output logic parallel_out,
-	input cdb_t sw_broadcast,
-	output cdb_t sw_broadcast_out,
+	input logic sw_broadcast,
+	output logic sw_broadcast_out,
+	input logic[31:0] sw_broadcast_data,
+	output logic[31:0] sw_broadcast_data_out,
 	input logic issue_fork,
 	output logic issue_fork_out,
 	output logic[GC_WIDTH-1:0] fork_gc,
@@ -683,7 +685,9 @@ module core #(
 		.reset,
 		.parallel,
 		.sw_broadcast,
-		.sw_broadcast_out
+		.sw_broadcast_out,
+		.sw_broadcast_data,
+		.sw_broadcast_data_out
 	);
 	ftoi ftoi(
 		.clk,

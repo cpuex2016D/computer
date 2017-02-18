@@ -37,7 +37,8 @@ module top #(
 	clk_wiz clk_wiz(.clk_in1_p(CLK_P), .clk_in1_n(CLK_N), .clk_out1(clk));
 
 	logic parallel;
-	cdb_t sw_broadcast;
+	logic sw_broadcast;
+	logic[31:0] sw_broadcast_data;
 	logic issue_fork;
 	logic[GC_WIDTH-1:0] fork_gc;
 	logic[GD_WIDTH-1:0] fork_gd;
@@ -92,6 +93,8 @@ module top #(
 		.parallel_out(parallel),
 		.sw_broadcast,
 		.sw_broadcast_out(sw_broadcast),
+		.sw_broadcast_data,
+		.sw_broadcast_data_out(sw_broadcast_data),
 		.issue_fork,
 		.issue_fork_out(issue_fork),
 		.fork_gc,
@@ -118,6 +121,7 @@ module top #(
 			.clk,
 			.parallel,
 			.sw_broadcast,
+			.sw_broadcast_data,
 			.issue_fork,
 			.gpr_arch_broadcast,
 			.fpr_arch_broadcast,
