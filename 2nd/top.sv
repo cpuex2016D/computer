@@ -48,6 +48,7 @@ module top #(
 	logic[GC_WIDTH-1:0] gc_assign[N_CORE];
 	logic[GD_WIDTH-1:0] gd;
 	logic gc_req_valid[N_CORE];
+	logic[$clog2(N_CORE):0] gc_req_valid_sum[N_CORE+1];
 	wire acc_req_valid[N_CORE][N_ACC];
 	wire acc_req_ready[N_CORE][N_ACC];
 	wire[31:0] acc_data[N_CORE][N_ACC];
@@ -59,16 +60,21 @@ module top #(
 	for (genvar i=0; i<N_CORE+1; i++) begin
 		assign gc_plus[i] = $signed(gc) + i * $signed(gd);
 	end
-	assign gc_assign[0] = gc_plus[0];
-	assign gc_assign[1] = gc_plus[gc_req_valid[0]];
-	assign gc_assign[2] = gc_plus[gc_req_valid[0]+gc_req_valid[1]];
-	assign gc_assign[3] = gc_plus[gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]];
+	assign gc_req_valid_sum[0] = 0;
+	assign gc_req_valid_sum[1] = gc_req_valid[0];
+	assign gc_req_valid_sum[2] = gc_req_valid[0]+gc_req_valid[1];
+	assign gc_req_valid_sum[3] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2];
+	assign gc_req_valid_sum[4] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3];
+	assign gc_assign[0] = gc_plus[gc_req_valid_sum[0]];
+	assign gc_assign[1] = gc_plus[gc_req_valid_sum[1]];
+	assign gc_assign[2] = gc_plus[gc_req_valid_sum[2]];
+	assign gc_assign[3] = gc_plus[gc_req_valid_sum[3]];
 	always_ff @(posedge clk) begin
 		if (issue_fork) begin
 			gc <= fork_gc;
 			gd <= fork_gd;
 		end else begin
-			gc <= gc_plus[gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3]];
+			gc <= gc_plus[gc_req_valid_sum[4]];
 		end
 	end
 
