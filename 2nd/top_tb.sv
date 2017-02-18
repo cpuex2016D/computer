@@ -35,7 +35,7 @@ module top_tb;
 		force top.clk = !top.clk;
 	end
 
-	int fd, fd_w;
+	int fd, fd_w, fd_debug;
 	int c;
 	int count = 0;
 
@@ -48,27 +48,25 @@ module top_tb;
 		end
 	end
 
+	always #(1) begin
+		if (top.parent.b_commit && (top.parent.b.b_e[0].failure ^ top.parent.b.b_e[0].prediction[1])) begin
+			$fdisplay(fd_debug, "%d %d %d", top.parent.b.b_e[0].pc_from, top.parent.b.b_e[0].pc_to, $stime());
+			$fflush(fd_debug);
+		end
+	end
+
 	initial begin
 		fd_w = $fopen("../../../o_sim", "wb");
+		fd_debug = $fopen("../../../o_debug_vivado", "w");
 //		fd_w = $fopen("../../../../o_sim", "wb");
 		top.parent.parallel_out <= 0;
-
-		top.pc <= 0;
-<<<<<<< HEAD
-		top.inst_mem.inst_mem <= '{default: 0};
-		top.inst_mem.pht      <= '{default: 0};
-=======
->>>>>>> 7e1b2876a70de4ec5e18fcf6e8b6d97430dd6e34
+		top.parent.gpr_arch.registers[REG_SP].data <= REG_SP_INIT;
+		top.parent.gpr_arch.registers[REG_HP].data <= REG_HP_INIT;
 
 		//毎回変える
 //		$readmemh("../../../minrt_pc0_text.hex", top.inst_mem.inst_mem);
 //		$readmemh("../../../minrt_pc0_data.hex", top.lw_sw.data_mem.data_mem);
 //		top.gpr_arch.registers[31].data = 789;
-		$readmemh("../../../minrt_pc0_1x1_text.hex", top.inst_mem.inst_mem);
-		$readmemh("../../../minrt_pc0_1x1_data.hex", top.lw_sw.data_mem.data_mem);
-		top.gpr_arch.registers[31].data = 790;
-		//毎回変えない
-		top.gpr_arch.registers[30].data = 32'h1ffff;
 
 /*
 		fd = $fopen("../../../program_fib_text", "rb");
@@ -90,15 +88,9 @@ module top_tb;
 		end
 */
 
-		#10;
-		SW_E <= !SW_E;
-		#10;
-		SW_E <= !SW_E;
 		//毎回変える
 //		$readmemh("../../../contest.sld.bin.hex", top.receiver_wrapper.buffer);
 //		top.receiver_wrapper.in_pointer = 325;
-		$readmemh("../../../ball.sld.bin.hex", top.receiver_wrapper.buffer);
-		top.receiver_wrapper.in_pointer = 33;
 
 //		fd = $fopen("../../../program_mandelbrot_data", "rb");
 ////		fd = $fopen("../../../../program_mandelbrot_data", "rb");

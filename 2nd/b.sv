@@ -19,6 +19,8 @@ typedef struct {
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer;
 	logic[ROB_WIDTH-1:0] gpr_pointer;
 	logic[ROB_WIDTH-1:0] fpr_pointer;
+	logic[INST_MEM_WIDTH-1:0] pc_from;
+	logic[INST_MEM_WIDTH-1:0] pc_to;
 } b_entry;
 typedef struct {
 	logic[$clog2(N_B_ENTRY-1):0] pointer;  //b_entryへのポインタ  //b_entryにカウンタを持たせる実装の方が良いかも
@@ -56,7 +58,9 @@ module b #(
 	output logic[INST_MEM_WIDTH-1:0] addr_on_failure_out,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] pc,
-	output logic[INST_MEM_WIDTH-1:0] return_addr
+	output logic[INST_MEM_WIDTH-1:0] return_addr,
+	input logic[INST_MEM_WIDTH-1:0] pc_from,
+	input logic[INST_MEM_WIDTH-1:0] pc_to
 );
 	logic[$clog2(N_B_ENTRY):0] cmp_count = 0;
 	logic[$clog2(N_B_ENTRY):0] b_count = 0;
@@ -146,6 +150,8 @@ module b #(
 	assign b_e_new.stack_pointer   = stack_pointer;
 	assign b_e_new.gpr_pointer     = gpr_issue_tag;
 	assign b_e_new.fpr_pointer     = fpr_issue_tag;
+	assign b_e_new.pc_from         = pc_from;
+	assign b_e_new.pc_to           = pc_to;
 	always_comb begin
 		if (commit) begin
 			b_e_moved[0] <= b_count>=2 ? b_e[1] : b_e_new;
@@ -172,6 +178,8 @@ module b #(
 			b_e[i].stack_pointer   <= b_e_moved[i].stack_pointer;
 			b_e[i].gpr_pointer     <= b_e_moved[i].gpr_pointer;
 			b_e[i].fpr_pointer     <= b_e_moved[i].fpr_pointer;
+			b_e[i].pc_from         <= b_e_moved[i].pc_from;
+			b_e[i].pc_to           <= b_e_moved[i].pc_to;
 		end
 	end
 

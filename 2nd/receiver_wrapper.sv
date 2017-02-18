@@ -18,9 +18,12 @@ module receiver_wrapper #(
 		.valid(receiver_valid)
 	);
 	(* ram_style = "distributed" *) logic[31:0] buffer[2**IN_BUFFER_WIDTH];
-	logic[IN_BUFFER_WIDTH-1:0] in_pointer = 0;
+	logic[IN_BUFFER_WIDTH-1:0] in_pointer = 12;
 	logic[IN_BUFFER_WIDTH-1:0] out_pointer = 0;
 	logic[1:0] in_pointer_sub = 0;
+	initial begin
+		$readmemh("../../../none.sld.bin.hex", buffer);
+	end
 
 	assign valid = in_pointer!=out_pointer;
 	assign out = buffer[out_pointer];
