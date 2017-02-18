@@ -24,6 +24,7 @@ typedef struct {
 	logic[DATA_MEM_WIDTH-1:0] addr;
 	gpr_or_fpr_t gpr_or_fpr;
 	cdb_t sw_data;
+	logic[$clog2(N_B_ENTRY):0] b_count;
 } sw_entry;
 
 module lw_sw #(
@@ -37,12 +38,14 @@ module lw_sw #(
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	input cdb_t gpr_cdb,
 	input cdb_t fpr_cdb,
+	input logic[$clog2(N_B_ENTRY):0] b_count_next,
+	input logic b_commit,
 	req_if issue_req,
 	req_if gpr_cdb_req,
 	req_if fpr_cdb_req,
-	req_if commit_req,
 	output logic[ROB_WIDTH-1:0] tag,
 	output logic[31:0] result,
+	input logic failure,
 	input logic reset,
 	input logic parallel,
 	input logic sw_broadcast,
@@ -189,6 +192,7 @@ module lw_sw #(
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].tag : {ROB_WIDTH{1'bx}};
 	assign sw_e_new.sw_data.data  = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].data :
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].data : 32'bx;
+	assign sw_e_new.b_count       = b_count_next;
 	for (genvar j=0; j<N_SW_ENTRY; j++) begin
 		agu_entry agu_e_dispatched;
 		assign agu_e_dispatched = agu_e[agu_dispatched];
@@ -201,16 +205,15 @@ module lw_sw #(
 		assign sw_e_updated[j].sw_data.valid = sw_e[j].sw_data.valid || tag_match(cdb, sw_e[j].sw_data.tag);
 		assign sw_e_updated[j].sw_data.tag   = sw_e[j].sw_data.tag;
 		assign sw_e_updated[j].sw_data.data  = sw_e[j].sw_data.valid ? sw_e[j].sw_data.data : cdb.data;
+		assign sw_e_updated[j].b_count       = sw_e[j].b_count==0 ? 0 : sw_e[j].b_count-b_commit;
 	end
 
-	assign commit_req.ready = sw_e[0].addr_valid;
-	wire sw_commit = commit_req.valid && commit_req.ready;
+	wire sw_commit = sw_count!=0 && sw_e[0].b_count==0 && sw_e[0].addr_valid && sw_e[0].sw_data.valid;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && !sw_e[0].sw_data.valid) begin
-			$display("hoge: sw: error!!!!!!!!!!");
-		end
-		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
+		sw_count <= failure ?
+		            (sw_e[0].b_count==0)+(sw_e[1].b_count==0)+(sw_e[2].b_count==0)+(sw_e[3].b_count==0)-sw_commit :
+		            sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
 		if (sw_commit) begin
 			sw_e[0] <= sw_count>=2 ? sw_e_updated[1] : sw_e_new;
 			sw_e[1] <= sw_count>=3 ? sw_e_updated[2] : sw_e_new;

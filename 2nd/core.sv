@@ -179,8 +179,6 @@ module core #(
 	//commit
 	req_if commit_req_gpr();
 	req_if commit_req_fpr();
-	req_if commit_req_sw();
-	req_if commit_req_out();
 	req_if commit_req_b();
 	logic[REG_WIDTH-1:0] gpr_commit_arch_num;
 	logic[REG_WIDTH-1:0] fpr_commit_arch_num;
@@ -264,11 +262,10 @@ module core #(
 	                         inst.is_fmul       ||
 	                         inst.is_fdiv_fsqrt ||
 	                         inst.is_fmov       ||
-	                         inst.is_lw_sw      ||
+	                         inst.is_lw_sw      && inst.op[2]==0 ||
 	                         inst.is_ftoi       ||
 	                         inst.is_itof       ||
 	                         inst.is_in         ||
-	                         inst.is_out        ||
 	                         inst.is_b            ) && !issue_req_commit_ring.ready ||
 	                        issue_req_add_sub.valid    && !issue_req_add_sub.ready    ||
 	                        issue_req_mov.valid        && !issue_req_mov.ready        ||
@@ -316,11 +313,11 @@ module core #(
 	assign issue_req_fmul.valid       = issue_req_commit_ring.ready && inst.is_fmul;
 	assign issue_req_fdiv_fsqrt.valid = issue_req_commit_ring.ready && inst.is_fdiv_fsqrt;
 	assign issue_req_fmov.valid       = issue_req_commit_ring.ready && inst.is_fmov;
-	assign issue_req_lw_sw.valid      = issue_req_commit_ring.ready && inst.is_lw_sw;
+	assign issue_req_lw_sw.valid      = (inst.op[2]==1 || issue_req_commit_ring.ready) && inst.is_lw_sw;
 	assign issue_req_ftoi.valid       = issue_req_commit_ring.ready && inst.is_ftoi;
 	assign issue_req_itof.valid       = issue_req_commit_ring.ready && inst.is_itof;
-	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in  && PARENT;
-	assign issue_req_out.valid        = issue_req_commit_ring.ready && inst.is_out && PARENT;
+	assign issue_req_in.valid         = issue_req_commit_ring.ready && inst.is_in && PARENT;
+	assign issue_req_out.valid        = inst.is_out && PARENT;
 	for (genvar i=0; i<N_ACC; i++) begin
 		assign issue_req_acc[i].valid   = inst.is_acc && inst.r0[i];
 	end
@@ -337,11 +334,10 @@ module core #(
 	                    inst.is_fmul ? COMMIT_FPR :
 	                    inst.is_fdiv_fsqrt ? COMMIT_FPR :
 	                    inst.is_fmov ? COMMIT_FPR :
-	                    inst.is_lw_sw ? inst.op[2] ? COMMIT_SW : inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
+	                    inst.is_lw_sw && !inst.op[2] ? inst.op[1] ? COMMIT_FPR : COMMIT_GPR :
 	                    inst.is_ftoi ? COMMIT_GPR :
 	                    inst.is_itof ? COMMIT_FPR :
 	                    inst.is_in&&PARENT ? inst.op[0] ? COMMIT_FPR_IN : COMMIT_GPR_IN :
-	                    inst.is_out&&PARENT ? COMMIT_OUT :
 	                    inst.is_b ? COMMIT_B : COMMIT_X;
 	assign issue_req_commit_ring.valid = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
 	                                     issue_req_next.valid       && issue_req_next.ready       ||
@@ -350,11 +346,10 @@ module core #(
 	                                     issue_req_fmul.valid       && issue_req_fmul.ready       ||
 	                                     issue_req_fdiv_fsqrt.valid && issue_req_fdiv_fsqrt.ready ||
 	                                     issue_req_fmov.valid       && issue_req_fmov.ready       ||
-	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      ||
+	                                     issue_req_lw_sw.valid      && issue_req_lw_sw.ready      && inst.op[2]==0 ||
 	                                     issue_req_ftoi.valid       && issue_req_ftoi.ready       ||
 	                                     issue_req_itof.valid       && issue_req_itof.ready       ||
 	                                     issue_req_in.valid         && issue_req_in.ready         ||
-	                                     issue_req_out.valid        && issue_req_out.ready        ||
 	                                     issue_req_b.valid          && issue_req_b.ready;
 	assign issue_gpr = issue_req_add_sub.valid    && issue_req_add_sub.ready    ||
 	                   issue_req_next.valid       && issue_req_next.ready       ||
@@ -507,8 +502,6 @@ module core #(
 		.issue_req(issue_req_commit_ring),
 		.commit_req_gpr,
 		.commit_req_fpr,
-		.commit_req_sw,
-		.commit_req_out,
 		.commit_req_b,
 		.empty(commit_ring_empty),
 		.reset,
@@ -678,12 +671,14 @@ module core #(
 		.fpr_issue_tag,
 		.gpr_cdb,
 		.fpr_cdb,
+		.b_count_next,
+		.b_commit(commit_req_b.valid && commit_req_b.ready),
 		.issue_req(issue_req_lw_sw),
 		.gpr_cdb_req(gpr_cdb_req_lw),
 		.fpr_cdb_req(fpr_cdb_req_lw),
-		.commit_req(commit_req_sw),
 		.tag(tag_lw),
 		.result(result_lw),
+		.failure,
 		.reset,
 		.parallel,
 		.sw_broadcast,
@@ -734,12 +729,13 @@ module core #(
 				.clk,
 				.gpr_read,
 				.gpr_cdb,
+				.b_count_next,
+				.b_commit(commit_req_b.valid && commit_req_b.ready),
 				.issue_req(issue_req_out),
-				.commit_req(commit_req_out),
 				.sender_ready,
 				.sender_valid,
 				.sender_in,
-				.reset
+				.failure
 			);
 		end else begin
 			assign gpr_cdb_req_in.valid = 0;
