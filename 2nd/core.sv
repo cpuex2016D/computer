@@ -404,6 +404,7 @@ module core #(
 		gpr_cdb_rsv[0].valid <= reset ? 0 : gpr_cdb_rsv[1].valid ||
 		                        gpr_cdb_req_lw.valid      && gpr_cdb_req_lw.ready      ||
 		                        gpr_cdb_req_add_sub.valid && gpr_cdb_req_add_sub.ready ||
+		                        gpr_cdb_req_next.valid    && gpr_cdb_req_next.ready    ||
 		                        gpr_cdb_req_mov.valid     && gpr_cdb_req_mov.ready;
 		gpr_cdb_rsv[2].tag <= tag_ftoi;
 		gpr_cdb_rsv[1].tag <= gpr_cdb_rsv[2].tag;
