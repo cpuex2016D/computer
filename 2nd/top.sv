@@ -97,7 +97,9 @@ module top #(
 		.gc(gc_assign[0]),
 		.gc_req_valid(gc_req_valid[0]),
 		.acc_req_valid,
-		.acc_req_ready,
+		.acc_req_valid_out(acc_req_valid[0]),
+		.acc_req_ready(acc_req_ready[0]),
+		.acc_req_ready_out(acc_req_ready),
 		.acc_data,
 		.acc_data_out(acc_data[0]),
 		.all_ending
@@ -115,8 +117,8 @@ module top #(
 			.fpr_arch_broadcast,
 			.gc(gc_assign[i]),
 			.gc_req_valid(gc_req_valid[i]),
-			.acc_req_valid,
-			.acc_req_ready,
+			.acc_req_valid_out(acc_req_valid[i]),
+			.acc_req_ready(acc_req_ready[i]),
 			.acc_data_out(acc_data[i]),
 			.ending(ending[i])
 		);
