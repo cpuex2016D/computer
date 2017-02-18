@@ -45,8 +45,12 @@ module lw_sw #(
 	output logic[31:0] result,
 	input logic reset,
 	input logic parallel,
-	input cdb_t sw_broadcast,  //tagは使わない
-	output cdb_t sw_broadcast_out  //tagは使わない
+	input logic sw_broadcast,
+	output logic sw_broadcast_out,
+	input logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr,
+	output logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr_out,
+	input logic[31:0] sw_broadcast_data,
+	output logic[31:0] sw_broadcast_data_out
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -229,18 +233,19 @@ module lw_sw #(
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
 	logic[31:0] data_mem_out;
 	data_mem data_mem(
-		.addra(sw_e[0].addr),
+		.addra(parallel ? sw_e[0].addr : sw_broadcast_addr),
 		.addrb(lw_e_next[0].addr),
 		.clka(clk),
 		.clkb(clk),
-		.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast.data),
+		.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast_data),
 		.doutb(data_mem_out),
-		.wea(sw_commit || sw_broadcast.valid)
+		.wea(sw_commit || sw_broadcast)
 	);
 	generate
 		if (PARENT) begin
-			assign sw_broadcast_out.valid = !parallel && sw_commit;
-			assign sw_broadcast_out.data  = sw_e[0].sw_data.data;
+			assign sw_broadcast_out      = !parallel && sw_commit;
+			assign sw_broadcast_addr_out = sw_e[0].addr;
+			assign sw_broadcast_data_out = sw_e[0].sw_data.data;
 		end
 	endgenerate
 endmodule
