@@ -47,6 +47,8 @@ module lw_sw #(
 	input logic parallel,
 	input logic sw_broadcast,
 	output logic sw_broadcast_out,
+	input logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr,
+	output logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr_out,
 	input logic[31:0] sw_broadcast_data,
 	output logic[31:0] sw_broadcast_data_out
 );
@@ -231,7 +233,7 @@ module lw_sw #(
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
 	logic[31:0] data_mem_out;
 	data_mem data_mem(
-		.addra(sw_e[0].addr),
+		.addra(parallel ? sw_e[0].addr : sw_broadcast_addr),
 		.addrb(lw_e_next[0].addr),
 		.clka(clk),
 		.clkb(clk),
@@ -242,6 +244,7 @@ module lw_sw #(
 	generate
 		if (PARENT) begin
 			assign sw_broadcast_out      = !parallel && sw_commit;
+			assign sw_broadcast_addr_out = sw_e[0].addr;
 			assign sw_broadcast_data_out = sw_e[0].sw_data.data;
 		end
 	endgenerate

@@ -38,6 +38,7 @@ module top #(
 
 	logic parallel;
 	logic sw_broadcast;
+	logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr;
 	logic[31:0] sw_broadcast_data;
 	logic issue_fork;
 	logic[GC_WIDTH-1:0] fork_gc;
@@ -93,6 +94,8 @@ module top #(
 		.parallel_out(parallel),
 		.sw_broadcast,
 		.sw_broadcast_out(sw_broadcast),
+		.sw_broadcast_addr,
+		.sw_broadcast_addr_out(sw_broadcast_addr),
 		.sw_broadcast_data,
 		.sw_broadcast_data_out(sw_broadcast_data),
 		.issue_fork,
@@ -121,6 +124,7 @@ module top #(
 			.clk,
 			.parallel,
 			.sw_broadcast,
+			.sw_broadcast_addr,
 			.sw_broadcast_data,
 			.issue_fork,
 			.gpr_arch_broadcast,
