@@ -46,9 +46,8 @@ package my_package;
 		 COMMIT_GPR_IN,
 		 COMMIT_FPR_IN,
 		 COMMIT_SW,
-		 COMMIT_OUT,
 		 COMMIT_B,
-		 COMMIT_NULL,
+		 COMMIT_NULL = 3'b11x,
 		 COMMIT_X = 3'bx
 	} commit_ring_entry;
 

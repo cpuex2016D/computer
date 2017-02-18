@@ -1,9 +1,12 @@
 `include "common.vh"
 
 typedef struct {
-	logic valid;
-	logic[ROB_WIDTH-1:0] tag;
-	logic[7:0] data;
+	struct {
+		logic valid;
+		logic[ROB_WIDTH-1:0] tag;
+		logic[7:0] data;
+	} opd;
+	logic[$clog2(N_B_ENTRY):0] b_count;
 } out_entry;
 
 module out #(
@@ -11,49 +14,50 @@ module out #(
 	input logic clk,
 	input cdb_t gpr_read[2],
 	input cdb_t gpr_cdb,
+	input logic[$clog2(N_B_ENTRY):0] b_count_next,
+	input logic b_commit,
 	req_if issue_req,
-	req_if commit_req,
 	input logic sender_ready,
 	output logic sender_valid,
 	output logic[7:0] sender_in,
-	input logic reset
+	input logic failure
 );
 	localparam N_ENTRY = 4;
 	logic[$clog2(N_ENTRY):0] count = 0;
-	out_entry entry[N_ENTRY];
-	out_entry entry_updated[N_ENTRY];
-	out_entry entry_new;
+	out_entry e[N_ENTRY];
+	out_entry e_updated[N_ENTRY];
+	out_entry e_new;
 
-	assign entry_new.valid = gpr_read[0].valid;
-	assign entry_new.tag   = gpr_read[0].tag;
-	assign entry_new.data  = gpr_read[0].data[7:0];
+	assign e_new.opd.valid = gpr_read[0].valid;
+	assign e_new.opd.tag   = gpr_read[0].tag;
+	assign e_new.opd.data  = gpr_read[0].data[7:0];
+	assign e_new.b_count   = b_count_next;
 	for (genvar j=0; j<N_ENTRY; j++) begin
-		assign entry_updated[j].valid = entry[j].valid || tag_match(gpr_cdb, entry[j].tag);
-		assign entry_updated[j].tag   = entry[j].tag;
-		assign entry_updated[j].data  = entry[j].valid ? entry[j].data : gpr_cdb.data[7:0];
+		assign e_updated[j].opd.valid = e[j].opd.valid || tag_match(gpr_cdb, e[j].opd.tag);
+		assign e_updated[j].opd.tag   = e[j].opd.tag;
+		assign e_updated[j].opd.data  = e[j].opd.valid ? e[j].opd.data : gpr_cdb.data[7:0];
+		assign e_updated[j].b_count   = e[j].b_count==0 ? 0 : e[j].b_count-b_commit;
 	end
 
-	assign commit_req.ready = sender_ready;
-	wire commit = commit_req.valid && commit_req.ready;
-	assign sender_valid = commit_req.valid;
-	assign sender_in = entry[0].data[7:0];
+	assign sender_valid = count!=0 && e[0].b_count==0 && e[0].opd.valid;
+	wire commit = sender_valid && sender_ready;
+	assign sender_in = e[0].opd.data;
 	assign issue_req.ready = commit || count < N_ENTRY;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && !entry[0].valid) begin
-			$display("hoge: out: error!!!!!!!!!!");
-		end
-		count <= reset ? 0 : count - commit + (issue_req.valid && issue_req.ready);
+		count <= failure ?
+		         (e[0].b_count==0)+(e[1].b_count==0)+(e[2].b_count==0)+(e[3].b_count==0)-commit :
+		         count - commit + (issue_req.valid && issue_req.ready);
 		if (commit) begin
-			entry[0] <= count>=2 ? entry_updated[1] : entry_new;
-			entry[1] <= count>=3 ? entry_updated[2] : entry_new;
-			entry[2] <= count>=4 ? entry_updated[3] : entry_new;
-			entry[3] <= entry_new;
+			e[0] <= count>=2 ? e_updated[1] : e_new;
+			e[1] <= count>=3 ? e_updated[2] : e_new;
+			e[2] <= count>=4 ? e_updated[3] : e_new;
+			e[3] <= e_new;
 		end else begin
-			entry[0] <= count>=1 ? entry_updated[0] : entry_new;
-			entry[1] <= count>=2 ? entry_updated[1] : entry_new;
-			entry[2] <= count>=3 ? entry_updated[2] : entry_new;
-			entry[3] <= count>=4 ? entry_updated[3] : entry_new;
+			e[0] <= count>=1 ? e_updated[0] : e_new;
+			e[1] <= count>=2 ? e_updated[1] : e_new;
+			e[2] <= count>=3 ? e_updated[2] : e_new;
+			e[3] <= count>=4 ? e_updated[3] : e_new;
 		end
 	end
 endmodule
