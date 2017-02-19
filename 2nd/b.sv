@@ -183,7 +183,7 @@ module b #(
 	//backup
 	assign backup_e_new.pointer       = b_count - commit;
 	assign backup_e_new.stack_pointer = stack_pointer+1;
-	assign backup_e_new.addr          = addr_stack[ADDR_STACK_WIDTH'(stack_pointer+1)];
+	assign backup_e_new.addr          = addr_stack[backup_e_new.stack_pointer];
 	for (genvar i=0; i<N_BACKUP_ENTRY; i++) begin
 		assign backup_e_updated[i].pointer       = backup_e[i].pointer - commit;
 		assign backup_e_updated[i].stack_pointer = backup_e[i].stack_pointer;
