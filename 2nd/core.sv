@@ -240,7 +240,8 @@ module core #(
 				.in(UART_RX),
 				.ready(receiver_ready),
 				.out(receiver_out),
-				.valid(receiver_valid)
+				.valid(receiver_valid),
+				._req(issue_req_in.valid && !speculating)
 			);
 			sender_wrapper #(SENDER_PERIOD) sender_wrapper(
 				.clk,

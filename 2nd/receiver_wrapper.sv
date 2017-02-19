@@ -7,7 +7,8 @@ module receiver_wrapper #(
 	input logic in,
 	input logic ready,
 	output logic[31:0] out,
-	output logic valid
+	output logic valid,
+	input logic _req
 );
 	logic[7:0] receiver_out;
 	logic receiver_valid;
@@ -18,9 +19,10 @@ module receiver_wrapper #(
 		.valid(receiver_valid)
 	);
 	(* ram_style = "distributed" *) logic[31:0] buffer[2**IN_BUFFER_WIDTH];
-	logic[IN_BUFFER_WIDTH-1:0] in_pointer = 12;
+	logic[IN_BUFFER_WIDTH-1:0] in_pointer = 0;
 	logic[IN_BUFFER_WIDTH-1:0] out_pointer = 0;
 	logic[1:0] in_pointer_sub = 0;
+	int count = 100;
 	initial begin
 		$readmemh("../../../none.sld.bin.hex", buffer);
 	end
@@ -29,9 +31,17 @@ module receiver_wrapper #(
 	assign out = buffer[out_pointer];
 
 	always_ff @(posedge clk) begin
-		if (receiver_valid) begin
-			buffer[in_pointer][in_pointer_sub*8+:8] <= receiver_out;
-			{in_pointer, in_pointer_sub} <= {in_pointer, in_pointer_sub} + 1;
+//		if (receiver_valid) begin
+//			buffer[in_pointer][in_pointer_sub*8+:8] <= receiver_out;
+//			{in_pointer, in_pointer_sub} <= {in_pointer, in_pointer_sub} + 1;
+//		end
+		if (_req) begin
+			if (count) begin
+				count <= count - 1;
+			end else begin
+				in_pointer <= in_pointer + 1;
+				count <= 100;
+			end
 		end
 		if (valid && ready) begin
 			out_pointer <= out_pointer + 1;
