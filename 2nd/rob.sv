@@ -26,7 +26,8 @@ module rob #(
 	end
 	assign issue_tag = issue_pointer;
 	assign commit_tag = commit_pointer;
-	assign issue_req.ready = ROB_WIDTH'(issue_pointer+1) != commit_pointer;
+	wire[ROB_WIDTH-1:0] issue_pointer_plus_1 = issue_pointer+1;
+	assign issue_req.ready = issue_pointer_plus_1 != commit_pointer;
 	wire issue = issue_req.valid && issue_req.ready;
 	rob_entry commit_e;
 	assign commit_e = rob[commit_pointer];
