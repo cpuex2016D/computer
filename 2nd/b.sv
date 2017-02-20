@@ -102,7 +102,10 @@ module b #(
 		end
 	end
 
-	wire dispatch = cmp_count!=0 && cmp_e[0].opd[0].valid && (cmp_e[0].cmp_type==CMP_FZ || cmp_e[0].opd[1].valid);
+	wire dispatch = !b_e[0].failure &&
+	                !b_e[1].failure &&
+	                !b_e[2].failure &&
+	                cmp_count!=0 && cmp_e[0].opd[0].valid && (cmp_e[0].cmp_type==CMP_FZ || cmp_e[0].opd[1].valid);
 	wire[$clog2(N_B_ENTRY)-1:0] dispatch_to = b_count - cmp_count;
 	logic[7:0] fcmple_out;
 	fcmple_core fcmple_core(
