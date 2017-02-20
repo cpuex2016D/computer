@@ -15,14 +15,14 @@ package my_package;
 
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallel, register_file.no_acc_reqのみparameterizeされていない
-	parameter N_CORE = 5;  //register_file, topのみparameterizeされていない
+	parameter N_CORE = 6;  //register_file, topのみparameterizeされていない
 
 	//初期値設定
-	parameter PC_INIT = 6098;  //プログラム毎に変更
+	parameter PC_INIT = 6304;  //プログラム毎に変更
 	parameter REG_SP = 30;
 	parameter REG_HP = 31;
-	parameter REG_SP_INIT = 32'h1ffff;
-	parameter REG_HP_INIT = 789;  //プログラム毎に変更
+	parameter REG_SP_INIT = 108269 - 1;  //プログラム毎に変更
+	parameter REG_HP_INIT = 801;  //プログラム毎に変更
 
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
 		logic valid;
