@@ -83,7 +83,8 @@ module register_file #(
 			                    !acc_req_valid[2][0] && !acc_req_valid[2][1] && !acc_req_valid[2][2] &&
 			                    !acc_req_valid[3][0] && !acc_req_valid[3][1] && !acc_req_valid[3][2] &&
 			                    !acc_req_valid[4][0] && !acc_req_valid[4][1] && !acc_req_valid[4][2] &&
-			                    !acc_req_valid[5][0] && !acc_req_valid[5][1] && !acc_req_valid[5][2];
+			                    !acc_req_valid[5][0] && !acc_req_valid[5][1] && !acc_req_valid[5][2] &&
+			                    !acc_req_valid[6][0] && !acc_req_valid[6][1] && !acc_req_valid[6][2];
 			for (genvar i=0; i<N_ACC; i++) begin
 				assign acc_req_ready[0][i] = fadd_count[i]<=1;
 				assign acc_req_ready[1][i] = fadd_count[i]<=1 && !acc_req_valid[0][i];
@@ -91,17 +92,20 @@ module register_file #(
 				assign acc_req_ready[3][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i] && !acc_req_valid[2][i];
 				assign acc_req_ready[4][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i] && !acc_req_valid[2][i] && !acc_req_valid[3][i];
 				assign acc_req_ready[5][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i] && !acc_req_valid[2][i] && !acc_req_valid[3][i] && !acc_req_valid[4][i];
+				assign acc_req_ready[6][i] = fadd_count[i]<=1 && !acc_req_valid[0][i] && !acc_req_valid[1][i] && !acc_req_valid[2][i] && !acc_req_valid[3][i] && !acc_req_valid[4][i] && !acc_req_valid[5][i];
 				wire[2:0] dispatched = acc_req_valid[0][i] ? 0 :
 				                       acc_req_valid[1][i] ? 1 :
 				                       acc_req_valid[2][i] ? 2 :
 				                       acc_req_valid[3][i] ? 3 :
-				                       acc_req_valid[4][i] ? 4 : 5;
+				                       acc_req_valid[4][i] ? 4 :
+				                       acc_req_valid[5][i] ? 5 : 6;
 				wire dispatch = acc_req_valid[0][i]&&acc_req_ready[0][i] ||
 				                acc_req_valid[1][i]&&acc_req_ready[1][i] ||
 				                acc_req_valid[2][i]&&acc_req_ready[2][i] ||
 				                acc_req_valid[3][i]&&acc_req_ready[3][i] ||
 				                acc_req_valid[4][i]&&acc_req_ready[4][i] ||
-				                acc_req_valid[5][i]&&acc_req_ready[5][i];
+				                acc_req_valid[5][i]&&acc_req_ready[5][i] ||
+				                acc_req_valid[6][i]&&acc_req_ready[6][i];
 				always_ff @(posedge clk) begin
 					fadd_count[i] <= dispatch ? LATENCY_FADD : fadd_count[i]==0 ? 0 : fadd_count[i]-1;
 				end
