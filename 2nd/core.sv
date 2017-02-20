@@ -164,8 +164,8 @@ module core #(
 		FPR_CDB_FDIV,
 		FPR_CDB_FSQRT,
 		FPR_CDB_FADD_FSUB,
-		FPR_CDB_ITOF,
 		FPR_CDB_FMUL,
+		FPR_CDB_ITOF,
 		FPR_CDB_LW,
 		FPR_CDB_FMOV = 3'b11x
 	} fpr_unit_t;
@@ -174,7 +174,7 @@ module core #(
 		logic[ROB_WIDTH-1:0] tag;
 		fpr_unit_t unit;
 	} fpr_cdb_rsv_t;
-	fpr_cdb_rsv_t fpr_cdb_rsv[10];
+	fpr_cdb_rsv_t fpr_cdb_rsv[14];
 	cdb_t fpr_cdb;
 
 	//commit
@@ -403,53 +403,65 @@ module core #(
 	                       gpr_cdb_rsv[0].unit==GPR_CDB_ADD_SUB ? result_add_sub : result_next_mov;
 	//fpr_cdb
 	assign fpr_cdb_req_fdiv_fsqrt.ready = 1;
-	assign fpr_cdb_req_fadd_fsub.ready  = !fpr_cdb_rsv[4].valid;
+	assign fpr_cdb_req_fadd_fsub.ready  = !fpr_cdb_rsv[6].valid;
+	assign fpr_cdb_req_fmul.ready       = !fpr_cdb_rsv[4].valid;
 	assign fpr_cdb_req_itof.ready       = !fpr_cdb_rsv[3].valid;
-	assign fpr_cdb_req_fmul.ready       = !fpr_cdb_rsv[2].valid;
 	assign fpr_cdb_req_lw.ready         = !fpr_cdb_rsv[1].valid;
 	assign fpr_cdb_req_fmov.ready       = !fpr_cdb_rsv[1].valid && !fpr_cdb_req_lw.valid;
 	assign fpr_cdb_req_in.ready         = !fpr_cdb_rsv[0].valid;
-	for (genvar i=0; i<10; i++) begin
+	for (genvar i=0; i<14; i++) begin
 		initial begin
 			fpr_cdb_rsv[i].valid <= 0;
 		end
 	end
 	always_ff @(posedge clk) begin
-		fpr_cdb_rsv[9].valid <= reset ? 0 : fpr_cdb_req_fdiv_fsqrt.valid && fpr_cdb_req_fdiv_fsqrt.ready;
+		fpr_cdb_rsv[13].valid <= reset ? 0 : fpr_cdb_req_fdiv_fsqrt.valid && fpr_cdb_req_fdiv_fsqrt.ready;
+		fpr_cdb_rsv[12].valid <= reset ? 0 : fpr_cdb_rsv[13].valid;
+		fpr_cdb_rsv[11].valid <= reset ? 0 : fpr_cdb_rsv[12].valid;
+		fpr_cdb_rsv[10].valid <= reset ? 0 : fpr_cdb_rsv[11].valid;
+		fpr_cdb_rsv[9].valid <= reset ? 0 : fpr_cdb_rsv[10].valid;
 		fpr_cdb_rsv[8].valid <= reset ? 0 : fpr_cdb_rsv[9].valid;
 		fpr_cdb_rsv[7].valid <= reset ? 0 : fpr_cdb_rsv[8].valid;
 		fpr_cdb_rsv[6].valid <= reset ? 0 : fpr_cdb_rsv[7].valid;
-		fpr_cdb_rsv[5].valid <= reset ? 0 : fpr_cdb_rsv[6].valid;
+		fpr_cdb_rsv[5].valid <= reset ? 0 : fpr_cdb_rsv[6].valid ||
+		                        fpr_cdb_req_fadd_fsub.valid && fpr_cdb_req_fadd_fsub.ready;
 		fpr_cdb_rsv[4].valid <= reset ? 0 : fpr_cdb_rsv[5].valid;
 		fpr_cdb_rsv[3].valid <= reset ? 0 : fpr_cdb_rsv[4].valid ||
-		                        fpr_cdb_req_fadd_fsub.valid && fpr_cdb_req_fadd_fsub.ready;
+		                        fpr_cdb_req_fmul.valid && fpr_cdb_req_fmul.ready;
 		fpr_cdb_rsv[2].valid <= reset ? 0 : fpr_cdb_rsv[3].valid ||
 		                        fpr_cdb_req_itof.valid && fpr_cdb_req_itof.ready;
-		fpr_cdb_rsv[1].valid <= reset ? 0 : fpr_cdb_rsv[2].valid ||
-		                        fpr_cdb_req_fmul.valid && fpr_cdb_req_fmul.ready;
+		fpr_cdb_rsv[1].valid <= reset ? 0 : fpr_cdb_rsv[2].valid;
 		fpr_cdb_rsv[0].valid <= reset ? 0 : fpr_cdb_rsv[1].valid ||
 		                        fpr_cdb_req_lw.valid   && fpr_cdb_req_lw.ready ||
 		                        fpr_cdb_req_fmov.valid && fpr_cdb_req_fmov.ready;
-		fpr_cdb_rsv[9].tag <= tag_fdiv_fsqrt;
+		fpr_cdb_rsv[13].tag <= tag_fdiv_fsqrt;
+		fpr_cdb_rsv[12].tag <= fpr_cdb_rsv[13].tag;
+		fpr_cdb_rsv[11].tag <= fpr_cdb_rsv[12].tag;
+		fpr_cdb_rsv[10].tag <= fpr_cdb_rsv[11].tag;
+		fpr_cdb_rsv[9].tag <= fpr_cdb_rsv[10].tag;
 		fpr_cdb_rsv[8].tag <= fpr_cdb_rsv[9].tag;
 		fpr_cdb_rsv[7].tag <= fpr_cdb_rsv[8].tag;
 		fpr_cdb_rsv[6].tag <= fpr_cdb_rsv[7].tag;
-		fpr_cdb_rsv[5].tag <= fpr_cdb_rsv[6].tag;
+		fpr_cdb_rsv[5].tag <= fpr_cdb_rsv[6].valid ? fpr_cdb_rsv[6].tag : tag_fadd_fsub;
 		fpr_cdb_rsv[4].tag <= fpr_cdb_rsv[5].tag;
-		fpr_cdb_rsv[3].tag <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].tag : tag_fadd_fsub;
+		fpr_cdb_rsv[3].tag <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].tag : tag_fmul;
 		fpr_cdb_rsv[2].tag <= fpr_cdb_rsv[3].valid ? fpr_cdb_rsv[3].tag : tag_itof;
-		fpr_cdb_rsv[1].tag <= fpr_cdb_rsv[2].valid ? fpr_cdb_rsv[2].tag : tag_fmul;
+		fpr_cdb_rsv[1].tag <= fpr_cdb_rsv[2].tag;
 		fpr_cdb_rsv[0].tag <= fpr_cdb_rsv[1].valid                         ? fpr_cdb_rsv[1].tag :
 		                      fpr_cdb_req_lw.valid && fpr_cdb_req_lw.ready ? tag_lw : tag_fmov;
-		fpr_cdb_rsv[9].unit <= fpr_cdb_req_is_fsqrt ? FPR_CDB_FSQRT : FPR_CDB_FDIV;
+		fpr_cdb_rsv[13].unit <= fpr_cdb_req_is_fsqrt ? FPR_CDB_FSQRT : FPR_CDB_FDIV;
+		fpr_cdb_rsv[12].unit <= fpr_cdb_rsv[13].unit;
+		fpr_cdb_rsv[11].unit <= fpr_cdb_rsv[12].unit;
+		fpr_cdb_rsv[10].unit <= fpr_cdb_rsv[11].unit;
+		fpr_cdb_rsv[9].unit <= fpr_cdb_rsv[10].unit;
 		fpr_cdb_rsv[8].unit <= fpr_cdb_rsv[9].unit;
 		fpr_cdb_rsv[7].unit <= fpr_cdb_rsv[8].unit;
 		fpr_cdb_rsv[6].unit <= fpr_cdb_rsv[7].unit;
-		fpr_cdb_rsv[5].unit <= fpr_cdb_rsv[6].unit;
+		fpr_cdb_rsv[5].unit <= fpr_cdb_rsv[6].valid ? fpr_cdb_rsv[6].unit : FPR_CDB_FADD_FSUB;
 		fpr_cdb_rsv[4].unit <= fpr_cdb_rsv[5].unit;
-		fpr_cdb_rsv[3].unit <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].unit : FPR_CDB_FADD_FSUB;
+		fpr_cdb_rsv[3].unit <= fpr_cdb_rsv[4].valid ? fpr_cdb_rsv[4].unit : FPR_CDB_FMUL;
 		fpr_cdb_rsv[2].unit <= fpr_cdb_rsv[3].valid ? fpr_cdb_rsv[3].unit : FPR_CDB_ITOF;
-		fpr_cdb_rsv[1].unit <= fpr_cdb_rsv[2].valid ? fpr_cdb_rsv[2].unit : FPR_CDB_FMUL;
+		fpr_cdb_rsv[1].unit <= fpr_cdb_rsv[2].unit;
 		fpr_cdb_rsv[0].unit <= fpr_cdb_rsv[1].valid                         ? fpr_cdb_rsv[1].unit :
 		                       fpr_cdb_req_lw.valid && fpr_cdb_req_lw.ready ? FPR_CDB_LW : FPR_CDB_FMOV;
 	end
@@ -459,8 +471,8 @@ module core #(
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_FDIV      ? result_fdiv      :
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_FSQRT     ? result_fsqrt     :
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_FADD_FSUB ? result_fadd_fsub :
-	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof      :
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_FMUL      ? result_fmul      :
+	                       fpr_cdb_rsv[0].unit==FPR_CDB_ITOF      ? result_itof      :
 	                       fpr_cdb_rsv[0].unit==FPR_CDB_LW        ? result_lw        : result_fmov;
 
 	//commit
