@@ -1,27 +1,29 @@
 `include "common.vh"
 
-typedef enum logic {LW, SW, X_LW_SW=1'bx} lw_or_sw_t;
+//typedef enum logic {LW, SW, X_LW_SW=1'bx} lw_or_sw_t;
 typedef enum logic {GPR, FPR} gpr_or_fpr_t;
-typedef struct {
-	logic valid;
-	lw_or_sw_t lw_or_sw;
-	logic[1:0] pointer;
-	struct {
-		logic valid;
-		logic[ROB_WIDTH-1:0] tag;
-		logic[DATA_MEM_WIDTH-1:0] data;
-	} opd;
-} agu_entry;
+//typedef struct {
+//	logic valid;
+//	lw_or_sw_t lw_or_sw;
+//	logic[1:0] pointer;
+//	struct {
+//		logic valid;
+//		logic[ROB_WIDTH-1:0] tag;
+//		logic[DATA_MEM_WIDTH-1:0] data;
+//	} opd;
+//} agu_entry;
 typedef struct {
 	gpr_or_fpr_t gpr_or_fpr;
 	logic[ROB_WIDTH-1:0] tag;
 	logic addr_valid;  //なくせる?
 	logic[DATA_MEM_WIDTH-1:0] addr;
+	logic[LW_SW_C_WIDTH-1:0] c;
 	logic[2:0] pointer;
 } lw_entry;
 typedef struct {
 	logic addr_valid;  //なくせる?
 	logic[DATA_MEM_WIDTH-1:0] addr;
+	logic[LW_SW_C_WIDTH-1:0] c;
 	gpr_or_fpr_t gpr_or_fpr;
 	cdb_t sw_data;
 	logic[$clog2(N_B_ENTRY):0] b_count;
@@ -56,24 +58,24 @@ module lw_sw #(
 	output logic[31:0] sw_broadcast_data_out,
 	output logic sw_empty
 );
-	localparam N_AGU_ENTRY = 2;
+//	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
 	localparam N_SW_ENTRY = 4;
-	localparam agu_entry agu_e_invalid = '{
-		valid: 0,
-		lw_or_sw: X_LW_SW,
-		pointer: 2'bx,
-		opd: '{
-			valid: 1'bx,
-			tag: {ROB_WIDTH{1'bx}},
-			data: {DATA_MEM_WIDTH{1'bx}}
-		}
-	};
+//	localparam agu_entry agu_e_invalid = '{
+//		valid: 0,
+//		lw_or_sw: X_LW_SW,
+//		pointer: 2'bx,
+//		opd: '{
+//			valid: 1'bx,
+//			tag: {ROB_WIDTH{1'bx}},
+//			data: {DATA_MEM_WIDTH{1'bx}}
+//		}
+//	};
 	logic[1:0] lw_count = 0;
 	logic[2:0] sw_count = 0;
-	agu_entry agu_e[N_AGU_ENTRY];  //0から順に詰める
-	agu_entry agu_e_updated[N_AGU_ENTRY];
-	agu_entry agu_e_new;
+//	agu_entry agu_e[N_AGU_ENTRY];  //0から順に詰める
+//	agu_entry agu_e_updated[N_AGU_ENTRY];
+//	agu_entry agu_e_new;
 	lw_entry lw_e[N_LW_ENTRY];  //0から順に詰める
 	lw_entry lw_e_updated[N_LW_ENTRY];
 	lw_entry lw_e_new;
@@ -84,11 +86,11 @@ module lw_sw #(
 	logic                     just_stored;
 	logic[DATA_MEM_WIDTH-1:0] just_stored_addr;
 	logic[31:0]               just_stored_data;
-	for (genvar j=0; j<N_AGU_ENTRY; j++) begin
-		initial begin
-			agu_e[j] <= agu_e_invalid;
-		end
-	end
+//	for (genvar j=0; j<N_AGU_ENTRY; j++) begin
+//		initial begin
+//			agu_e[j] <= agu_e_invalid;
+//		end
+//	end
 
 	//agu
 	assign agu_e_new.valid    = issue_req.valid && issue_req.ready && inst.op[0]==1'b0;

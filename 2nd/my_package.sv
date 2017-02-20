@@ -11,6 +11,7 @@ package my_package;
 	parameter ADDR_STACK_WIDTH = 4;
 	parameter GC_WIDTH = 8;
 	parameter GD_WIDTH = 2;
+	parameter LW_SW_C_WIDTH = 11;
 
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallel, register_file.no_acc_reqのみparameterizeされていない
