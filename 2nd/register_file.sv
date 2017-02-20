@@ -84,59 +84,109 @@ module register_file #(
 			                    !acc_req_valid[1][0] && !acc_req_valid[1][1] && !acc_req_valid[1][2] &&
 			                    !acc_req_valid[2][0] && !acc_req_valid[2][1] && !acc_req_valid[2][2] &&
 			                    !acc_req_valid[3][0] && !acc_req_valid[3][1] && !acc_req_valid[3][2] &&
-			                    !acc_req_valid[4][0] && !acc_req_valid[4][1] && !acc_req_valid[4][2];
+			                    !acc_req_valid[4][0] && !acc_req_valid[4][1] && !acc_req_valid[4][2] &&
+			                    !acc_req_valid[5][0] && !acc_req_valid[5][1] && !acc_req_valid[5][2] &&
+			                    !acc_req_valid[6][0] && !acc_req_valid[6][1] && !acc_req_valid[6][2];
 			for (genvar i=0; i<N_ACC; i++) begin
 				wire[2:0] dispatched = gd_sign ?
 				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[2][i]) &&
 				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[4][i]) ? 0 :
+				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[0][i]) > $signed(gc_stamp[6][i]) ? 0 :
 				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[2][i]) &&
 				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[4][i]) ? 1 :
+				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[1][i]) > $signed(gc_stamp[6][i]) ? 1 :
 				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[4][i]) ? 2 :
+				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[2][i]) > $signed(gc_stamp[6][i]) ? 2 :
 				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[2][i]) &&
-				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[4][i]) ? 3 :
+				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[3][i]) > $signed(gc_stamp[6][i]) ? 3 :
 				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[2][i]) &&
-				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[3][i]) ? 4 : 3'bx :
+				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[4][i]) > $signed(gc_stamp[6][i]) ? 4 :
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[0][i]) &&
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[1][i]) &&
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[2][i]) &&
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[5][i]) > $signed(gc_stamp[6][i]) ? 5 :
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[0][i]) &&
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[1][i]) &&
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[2][i]) &&
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[6][i]) > $signed(gc_stamp[5][i]) ? 6 : 3'bx :
 				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[2][i]) &&
 				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[4][i]) ? 0 :
+				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[0][i]) < $signed(gc_stamp[6][i]) ? 0 :
 				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[2][i]) &&
 				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[4][i]) ? 1 :
+				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[1][i]) < $signed(gc_stamp[6][i]) ? 1 :
 				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[3][i]) &&
-				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[4][i]) ? 2 :
+				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[2][i]) < $signed(gc_stamp[6][i]) ? 2 :
 				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[2][i]) &&
-				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[4][i]) ? 3 :
+				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[3][i]) < $signed(gc_stamp[6][i]) ? 3 :
 				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[0][i]) &&
 				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[1][i]) &&
 				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[2][i]) &&
-				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[3][i]) ? 4 : 3'bx;
+				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[5][i]) &&
+				                         $signed(gc_stamp[4][i]) < $signed(gc_stamp[6][i]) ? 4 :
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[0][i]) &&
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[1][i]) &&
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[2][i]) &&
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[5][i]) < $signed(gc_stamp[6][i]) ? 5 :
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[0][i]) &&
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[1][i]) &&
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[2][i]) &&
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[3][i]) &&
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[4][i]) &&
+				                         $signed(gc_stamp[6][i]) < $signed(gc_stamp[5][i]) ? 6 : 3'bx;
 				assign acc_req_ready[0][i] = fadd_count[i]<=1 && dispatched==0;
 				assign acc_req_ready[1][i] = fadd_count[i]<=1 && dispatched==1;
 				assign acc_req_ready[2][i] = fadd_count[i]<=1 && dispatched==2;
 				assign acc_req_ready[3][i] = fadd_count[i]<=1 && dispatched==3;
 				assign acc_req_ready[4][i] = fadd_count[i]<=1 && dispatched==4;
+				assign acc_req_ready[5][i] = fadd_count[i]<=1 && dispatched==5;
+				assign acc_req_ready[6][i] = fadd_count[i]<=1 && dispatched==6;
 				wire dispatch = acc_req_valid[0][i]&&acc_req_ready[0][i] ||
 				                acc_req_valid[1][i]&&acc_req_ready[1][i] ||
 				                acc_req_valid[2][i]&&acc_req_ready[2][i] ||
 				                acc_req_valid[3][i]&&acc_req_ready[3][i] ||
-				                acc_req_valid[4][i]&&acc_req_ready[4][i];
+				                acc_req_valid[4][i]&&acc_req_ready[4][i] ||
+				                acc_req_valid[5][i]&&acc_req_ready[5][i] ||
+				                acc_req_valid[6][i]&&acc_req_ready[6][i];
 				always_ff @(posedge clk) begin
 					fadd_count[i] <= dispatch ? LATENCY_FADD : fadd_count[i]==0 ? 0 : fadd_count[i]-1;
 				end

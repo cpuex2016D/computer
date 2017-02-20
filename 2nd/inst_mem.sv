@@ -14,7 +14,7 @@ module inst_mem #(
 	output logic[1:0] prediction_begin,
 	input logic[1:0] prediction_end,
 	input logic failure,
-	input logic commit_b,
+	input logic b_commit,
 	input logic reset,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure,
 	input logic[INST_MEM_WIDTH-1:0] return_addr
@@ -23,8 +23,13 @@ module inst_mem #(
 	(* ram_style = "distributed" *) logic[1:0] pht[2**PATTERN_WIDTH];
 	logic[GH_WIDTH-1:0] gh = 0;
 	initial begin
-		$readmemh("text", inst_mem);
-		inst.bits <= PARENT ? {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]} : 32'h7c000000;
+		if (PARENT) begin
+			$readmemh("parent.text.hex", inst_mem);
+			inst.bits <= {4'h8, 4'b0, PC_INIT[13:11], 10'b0, PC_INIT[10:0]};
+		end else begin
+			$readmemh("child.text.hex", inst_mem);
+			inst.bits <= 32'h7c000000;
+		end
 	end
 
 	logic[INST_MEM_WIDTH-1:0] inst_addr;
@@ -55,7 +60,7 @@ module inst_mem #(
 		end
 
 		pattern_begin <= pattern;
-		if (commit_b) begin
+		if (b_commit) begin
 			gh <= {gh[GH_WIDTH-2:0], taken};
 			pht[pattern_end] <= prediction_updated;
 		end

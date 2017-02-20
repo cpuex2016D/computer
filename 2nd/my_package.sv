@@ -5,8 +5,7 @@ package my_package;
 	parameter INST_MEM_WIDTH = 14;
 	parameter DATA_MEM_WIDTH = 17;
 	parameter REG_WIDTH = 5;
-	parameter ROB_WIDTH = 4;  // ROB_WIDTH >= COMMIT_RING_WIDTH
-	parameter COMMIT_RING_WIDTH = 4;  //commit_ring.in_countのみparameterizeされていない
+	parameter ROB_WIDTH = 4;
 	parameter PATTERN_WIDTH = INST_MEM_WIDTH;
 	parameter GH_WIDTH = 10;
 	parameter ADDR_STACK_WIDTH = 4;
@@ -15,14 +14,15 @@ package my_package;
 
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallel, register_file.no_acc_reqのみparameterizeされていない
-	parameter N_CORE = 5;  //register_file, topのみparameterizeされていない
+	parameter N_CORE = 7;  //register_file, topのみparameterizeされていない
 
 	//初期値設定
-	parameter PC_INIT = 6098;  //プログラム毎に変更
+	parameter PC_INIT = 6304;  //プログラム毎に変更
 	parameter REG_SP = 30;
 	parameter REG_HP = 31;
-	parameter REG_SP_INIT = 32'h1ffff;
-	parameter REG_HP_INIT = 789;  //プログラム毎に変更
+	parameter DATA_MEM_DEPTH = 108269;  //プログラム毎に変更
+	parameter REG_SP_INIT = DATA_MEM_DEPTH - 1;
+	parameter REG_HP_INIT = 801;  //プログラム毎に変更
 
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
 		logic valid;
@@ -39,18 +39,6 @@ package my_package;
 		logic[REG_WIDTH-1:0] arch_num;
 		logic[31:0] data;
 	} rob_entry;
-
-	typedef enum logic[2:0] {
-		 COMMIT_GPR,
-		 COMMIT_FPR,
-		 COMMIT_GPR_IN,
-		 COMMIT_FPR_IN,
-		 COMMIT_SW,
-		 COMMIT_OUT,
-		 COMMIT_B,
-		 COMMIT_NULL,
-		 COMMIT_X = 3'bx
-	} commit_ring_entry;
 
 	typedef enum logic {LOAD, EXEC} mode_t;
 endpackage

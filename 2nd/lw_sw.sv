@@ -24,6 +24,7 @@ typedef struct {
 	logic[DATA_MEM_WIDTH-1:0] addr;
 	gpr_or_fpr_t gpr_or_fpr;
 	cdb_t sw_data;
+	logic[$clog2(N_B_ENTRY):0] b_count;
 } sw_entry;
 
 module lw_sw #(
@@ -37,12 +38,14 @@ module lw_sw #(
 	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
 	input cdb_t gpr_cdb,
 	input cdb_t fpr_cdb,
+	input logic[$clog2(N_B_ENTRY):0] b_count_next,
+	input logic b_commit,
 	req_if issue_req,
 	req_if gpr_cdb_req,
 	req_if fpr_cdb_req,
-	req_if commit_req,
 	output logic[ROB_WIDTH-1:0] tag,
 	output logic[31:0] result,
+	input logic failure,
 	input logic reset,
 	input logic parallel,
 	input logic sw_broadcast,
@@ -50,7 +53,8 @@ module lw_sw #(
 	input logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr,
 	output logic[DATA_MEM_WIDTH-1:0] sw_broadcast_addr_out,
 	input logic[31:0] sw_broadcast_data,
-	output logic[31:0] sw_broadcast_data_out
+	output logic[31:0] sw_broadcast_data_out,
+	output logic sw_empty
 );
 	localparam N_AGU_ENTRY = 2;
 	localparam N_LW_ENTRY = 2;
@@ -171,12 +175,12 @@ module lw_sw #(
 		lw_count <= reset ? 0 : lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
 		lw_e[0] <= lw_e_next[0];
 		lw_e[1] <= lw_e_next[1];
-		result <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr     ? sw_e[3].sw_data.data :
-		          lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr     ? sw_e[2].sw_data.data :
-		          lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr     ? sw_e[1].sw_data.data :
-		          lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr     ? sw_e[0].sw_data.data :
-		          just_stored        && lw_e[0].addr==just_stored_addr ? just_stored_data     :
-		                                                                 data_mem_out;
+		result <= lw_e[0].pointer>=4     && lw_e[0].addr==sw_e[3].addr     ? sw_e[3].sw_data.data :
+		          lw_e[0].pointer>=3     && lw_e[0].addr==sw_e[2].addr     ? sw_e[2].sw_data.data :
+		          lw_e[0].pointer>=2     && lw_e[0].addr==sw_e[1].addr     ? sw_e[1].sw_data.data :
+		          lw_e[0].pointer>=1     && lw_e[0].addr==sw_e[0].addr     ? sw_e[0].sw_data.data :
+		          !PARENT && just_stored && lw_e[0].addr==just_stored_addr ? just_stored_data     :
+		                                                                     data_mem_out;
 	end
 
 	//sw
@@ -189,6 +193,7 @@ module lw_sw #(
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].tag : {ROB_WIDTH{1'bx}};
 	assign sw_e_new.sw_data.data  = sw_e_new.gpr_or_fpr==GPR ? gpr_read[1].data :
 	                                sw_e_new.gpr_or_fpr==FPR ? fpr_read[1].data : 32'bx;
+	assign sw_e_new.b_count       = b_count_next;
 	for (genvar j=0; j<N_SW_ENTRY; j++) begin
 		agu_entry agu_e_dispatched;
 		assign agu_e_dispatched = agu_e[agu_dispatched];
@@ -201,16 +206,15 @@ module lw_sw #(
 		assign sw_e_updated[j].sw_data.valid = sw_e[j].sw_data.valid || tag_match(cdb, sw_e[j].sw_data.tag);
 		assign sw_e_updated[j].sw_data.tag   = sw_e[j].sw_data.tag;
 		assign sw_e_updated[j].sw_data.data  = sw_e[j].sw_data.valid ? sw_e[j].sw_data.data : cdb.data;
+		assign sw_e_updated[j].b_count       = sw_e[j].b_count==0 ? 0 : sw_e[j].b_count-b_commit;
 	end
 
-	assign commit_req.ready = sw_e[0].addr_valid;
-	wire sw_commit = commit_req.valid && commit_req.ready;
+	wire sw_commit = sw_count!=0 && sw_e[0].b_count==0 && sw_e[0].addr_valid && sw_e[0].sw_data.valid;
 
 	always_ff @(posedge clk) begin
-		if (commit_req.valid && !sw_e[0].sw_data.valid) begin
-			$display("hoge: sw: error!!!!!!!!!!");
-		end
-		sw_count <= reset ? 0 : sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
+		sw_count <= failure ?
+		            (sw_e[0].b_count==0)+(sw_e[1].b_count==0)+(sw_e[2].b_count==0)+(sw_e[3].b_count==0)-sw_commit :
+		            sw_count - sw_commit + (issue_req.valid && issue_req.ready && inst.op[2]==1);
 		if (sw_commit) begin
 			sw_e[0] <= sw_count>=2 ? sw_e_updated[1] : sw_e_new;
 			sw_e[1] <= sw_count>=3 ? sw_e_updated[2] : sw_e_new;
@@ -231,21 +235,39 @@ module lw_sw #(
 	assign issue_req.ready = (inst.op[0]==1 || agu_dispatch || !agu_e[N_AGU_ENTRY-1].valid) &&
 	                         (inst.op[2]==1 || lw_dispatch || lw_count < N_LW_ENTRY) &&
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
+	assign sw_empty = sw_count==0;
 	logic[31:0] data_mem_out;
-	data_mem data_mem(
-		.addra(parallel ? sw_e[0].addr : sw_broadcast_addr),
-		.addrb(lw_e_next[0].addr),
-		.clka(clk),
-		.clkb(clk),
-		.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast_data),
-		.doutb(data_mem_out),
-		.wea(sw_commit || sw_broadcast)
-	);
 	generate
 		if (PARENT) begin
+			data_mem_parent data_mem_parent(
+				.clk,
+				.addra(sw_e[0].addr),
+				.addrb(lw_e[0].addr),  //分散RAMなのでアドレスは非同期で良い
+				.dina(sw_e[0].sw_data.data),
+				.doutb(data_mem_out),
+				.wea(sw_commit)
+			);
 			assign sw_broadcast_out      = !parallel && sw_commit;
 			assign sw_broadcast_addr_out = sw_e[0].addr;
 			assign sw_broadcast_data_out = sw_e[0].sw_data.data;
+		end else begin
+			logic                     sw_broadcasted = 0;
+			logic[DATA_MEM_WIDTH-1:0] sw_broadcasted_addr;
+			logic[31:0]               sw_broadcasted_data;
+			always_ff @(posedge clk) begin
+				sw_broadcasted      <= sw_broadcast;
+				sw_broadcasted_addr <= sw_broadcast_addr;
+				sw_broadcasted_data <= sw_broadcast_data;
+			end
+			data_mem data_mem(
+				.addra(sw_broadcasted ? sw_broadcasted_addr : sw_e[0].addr),
+				.addrb(lw_e_next[0].addr),
+				.clka(clk),
+				.clkb(clk),
+				.dina(sw_broadcasted ? sw_broadcasted_data : sw_e[0].sw_data.data),
+				.doutb(data_mem_out),
+				.wea(sw_commit || sw_broadcasted)
+			);
 		end
 	endgenerate
 endmodule

@@ -1,7 +1,7 @@
 `include "common.vh"
 
 module top #(
-	parameter RECEIVER_PERIOD = 430,
+	parameter RECEIVER_PERIOD = 107,
 	//300MHz
 	//  300000000/115200/2 = 1302.0833333333333
 	//  1302 - 10 = 1292
@@ -13,7 +13,9 @@ module top #(
 	//  1292/2 = 646
 	//100MHz
 	//  1292/3 = 430.6666666666667
-	parameter SENDER_PERIOD = 861
+	//100MHz 460800baud
+	//  1292/3/4 = 107.66666666666667
+	parameter SENDER_PERIOD = 215
 	//300MHz
 	//  300000000/115200 = 2604.1666666666665
 	//  2604 - 20 = 2584
@@ -25,6 +27,8 @@ module top #(
 	//  2584/2 = 1292
 	//100MHz
 	//  2584/3 = 861.3333333333334
+	//100MHz 460800baud
+	//  2584/3/4 = 215.33333333333334
 ) (
 	input logic CLK_P,
 	input logic CLK_N,
@@ -56,7 +60,7 @@ module top #(
 	logic[$clog2(N_CORE):0] gc_req_valid_sum[N_CORE+1];
 	logic acc_req_valid[N_CORE][N_ACC];
 	logic acc_req_ready[N_CORE][N_ACC];
-	wire all_ending = ending[1]&&ending[2]&&ending[3]&&ending[4];
+	wire all_ending = ending[1]&&ending[2]&&ending[3]&&ending[4]&&ending[5]&&ending[6];
 
 
 
@@ -69,17 +73,21 @@ module top #(
 	assign gc_req_valid_sum[3] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2];
 	assign gc_req_valid_sum[4] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3];
 	assign gc_req_valid_sum[5] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3]+gc_req_valid[4];
+	assign gc_req_valid_sum[6] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3]+gc_req_valid[4]+gc_req_valid[5];
+	assign gc_req_valid_sum[7] = gc_req_valid[0]+gc_req_valid[1]+gc_req_valid[2]+gc_req_valid[3]+gc_req_valid[4]+gc_req_valid[5]+gc_req_valid[6];
 	assign gc_assign[0] = gc_plus[gc_req_valid_sum[0]];
 	assign gc_assign[1] = gc_plus[gc_req_valid_sum[1]];
 	assign gc_assign[2] = gc_plus[gc_req_valid_sum[2]];
 	assign gc_assign[3] = gc_plus[gc_req_valid_sum[3]];
 	assign gc_assign[4] = gc_plus[gc_req_valid_sum[4]];
+	assign gc_assign[5] = gc_plus[gc_req_valid_sum[5]];
+	assign gc_assign[6] = gc_plus[gc_req_valid_sum[6]];
 	always_ff @(posedge clk) begin
 		if (issue_fork) begin
 			gc <= fork_gc;
 			gd <= fork_gd;
 		end else begin
-			gc <= gc_plus[gc_req_valid_sum[5]];
+			gc <= gc_plus[gc_req_valid_sum[7]];
 		end
 	end
 

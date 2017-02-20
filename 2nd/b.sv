@@ -17,6 +17,8 @@ typedef struct {
 	logic[PATTERN_WIDTH-1:0] pattern;
 	logic[INST_MEM_WIDTH-1:0] addr_on_failure;
 	logic[ADDR_STACK_WIDTH-1:0] stack_pointer;
+	logic[ROB_WIDTH-1:0] gpr_pointer;
+	logic[ROB_WIDTH-1:0] fpr_pointer;
 } b_entry;
 typedef struct {
 	logic[$clog2(N_B_ENTRY-1):0] pointer;  //b_entryへのポインタ  //b_entryにカウンタを持たせる実装の方が良いかも
@@ -36,7 +38,14 @@ module b #(
 	req_if issue_req_jal,
 	req_if issue_req_fork,
 	req_if issue_req_end_parent,
-	req_if commit_req,
+	input logic[ROB_WIDTH-1:0] gpr_issue_tag,
+	input logic[ROB_WIDTH-1:0] fpr_issue_tag,
+	input logic[ROB_WIDTH-1:0] gpr_commit_tag,
+	input logic[ROB_WIDTH-1:0] fpr_commit_tag,
+	output logic speculating,
+	output logic sync_b_gpr,
+	output logic sync_b_fpr,
+	output logic commit,
 	input logic[1:0] prediction_begin,
 	input logic[PATTERN_WIDTH-1:0] pattern_begin,
 	input logic[INST_MEM_WIDTH-1:0] addr_on_failure_in,
@@ -93,7 +102,10 @@ module b #(
 		end
 	end
 
-	wire dispatch = cmp_count!=0 && cmp_e[0].opd[0].valid && (cmp_e[0].cmp_type==CMP_FZ || cmp_e[0].opd[1].valid);
+	wire dispatch = !b_e[0].failure &&
+	                !b_e[1].failure &&
+	                !b_e[2].failure &&
+	                cmp_count!=0 && cmp_e[0].opd[0].valid && (cmp_e[0].cmp_type==CMP_FZ || cmp_e[0].opd[1].valid);
 	wire[$clog2(N_B_ENTRY)-1:0] dispatch_to = b_count - cmp_count;
 	logic[7:0] fcmple_out;
 	fcmple_core fcmple_core(
@@ -122,8 +134,10 @@ module b #(
 	end
 
 	//general
-	assign commit_req.ready = cmp_count!=b_count;
-	wire commit = commit_req.valid && commit_req.ready;
+	assign speculating = b_count!=0;
+	assign sync_b_gpr = b_e[0].gpr_pointer==gpr_commit_tag;
+	assign sync_b_fpr = b_e[0].fpr_pointer==fpr_commit_tag;
+	assign commit = cmp_count!=b_count && sync_b_gpr && sync_b_fpr;
 	assign issue_req_b.ready = commit || b_count < N_B_ENTRY;
 	wire b_issue = issue_req_b.valid && issue_req_b.ready;
 
@@ -133,6 +147,8 @@ module b #(
 	assign b_e_new.pattern         = pattern_begin;
 	assign b_e_new.addr_on_failure = addr_on_failure_in;
 	assign b_e_new.stack_pointer   = stack_pointer;
+	assign b_e_new.gpr_pointer     = gpr_issue_tag;
+	assign b_e_new.fpr_pointer     = fpr_issue_tag;
 	always_comb begin
 		if (commit) begin
 			b_e_moved[0] <= b_count>=2 ? b_e[1] : b_e_new;
@@ -157,6 +173,8 @@ module b #(
 			b_e[i].pattern         <= b_e_moved[i].pattern;
 			b_e[i].addr_on_failure <= b_e_moved[i].addr_on_failure;
 			b_e[i].stack_pointer   <= b_e_moved[i].stack_pointer;
+			b_e[i].gpr_pointer     <= b_e_moved[i].gpr_pointer;
+			b_e[i].fpr_pointer     <= b_e_moved[i].fpr_pointer;
 		end
 	end
 
@@ -168,7 +186,7 @@ module b #(
 	//backup
 	assign backup_e_new.pointer       = b_count - commit;
 	assign backup_e_new.stack_pointer = stack_pointer+1;
-	assign backup_e_new.addr          = addr_stack[stack_pointer+1];
+	assign backup_e_new.addr          = addr_stack[backup_e_new.stack_pointer];
 	for (genvar i=0; i<N_BACKUP_ENTRY; i++) begin
 		assign backup_e_updated[i].pointer       = backup_e[i].pointer - commit;
 		assign backup_e_updated[i].stack_pointer = backup_e[i].stack_pointer;
