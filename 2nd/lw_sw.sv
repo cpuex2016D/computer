@@ -251,14 +251,22 @@ module lw_sw #(
 			assign sw_broadcast_addr_out = sw_e[0].addr;
 			assign sw_broadcast_data_out = sw_e[0].sw_data.data;
 		end else begin
+			logic                     sw_broadcasted = 0;
+			logic[DATA_MEM_WIDTH-1:0] sw_broadcasted_addr;
+			logic[31:0]               sw_broadcasted_data;
+			always_ff @(posedge clk) begin
+				sw_broadcasted      <= sw_broadcast;
+				sw_broadcasted_addr <= sw_broadcast_addr;
+				sw_broadcasted_data <= sw_broadcast_data;
+			end
 			data_mem data_mem(
-				.addra(parallel ? sw_e[0].addr : sw_broadcast_addr),
+				.addra(sw_broadcasted ? sw_broadcasted_addr : sw_e[0].addr),
 				.addrb(lw_e_next[0].addr),
 				.clka(clk),
 				.clkb(clk),
-				.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast_data),
+				.dina(sw_broadcasted ? sw_broadcasted_data : sw_e[0].sw_data.data),
 				.doutb(data_mem_out),
-				.wea(sw_commit || sw_broadcast)
+				.wea(sw_commit || sw_broadcasted)
 			);
 		end
 	endgenerate
