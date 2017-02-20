@@ -14,7 +14,7 @@ package my_package;
 
 	parameter N_B_ENTRY = 4;
 	parameter N_ACC = 3;  //core.inst_mem_stall, register_file.acc_all_valid_parallel, register_file.no_acc_reqのみparameterizeされていない
-	parameter N_CORE = 7;  //register_file, topのみparameterizeされていない
+	parameter N_CORE = 6;  //register_file, topのみparameterizeされていない
 
 	//初期値設定
 	parameter PC_INIT = 6304;  //プログラム毎に変更
