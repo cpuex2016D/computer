@@ -175,12 +175,12 @@ module lw_sw #(
 		lw_count <= reset ? 0 : lw_count - lw_dispatch + (issue_req.valid && issue_req.ready && inst.op[2]==0);
 		lw_e[0] <= lw_e_next[0];
 		lw_e[1] <= lw_e_next[1];
-		result <= lw_e[0].pointer>=4     && lw_e[0].addr==sw_e[3].addr     ? sw_e[3].sw_data.data :
-		          lw_e[0].pointer>=3     && lw_e[0].addr==sw_e[2].addr     ? sw_e[2].sw_data.data :
-		          lw_e[0].pointer>=2     && lw_e[0].addr==sw_e[1].addr     ? sw_e[1].sw_data.data :
-		          lw_e[0].pointer>=1     && lw_e[0].addr==sw_e[0].addr     ? sw_e[0].sw_data.data :
-		          !PARENT && just_stored && lw_e[0].addr==just_stored_addr ? just_stored_data     :
-		                                                                     data_mem_out;
+		result <= lw_e[0].pointer>=4 && lw_e[0].addr==sw_e[3].addr     ? sw_e[3].sw_data.data :
+		          lw_e[0].pointer>=3 && lw_e[0].addr==sw_e[2].addr     ? sw_e[2].sw_data.data :
+		          lw_e[0].pointer>=2 && lw_e[0].addr==sw_e[1].addr     ? sw_e[1].sw_data.data :
+		          lw_e[0].pointer>=1 && lw_e[0].addr==sw_e[0].addr     ? sw_e[0].sw_data.data :
+		          just_stored        && lw_e[0].addr==just_stored_addr ? just_stored_data     :
+		                                                                 data_mem_out;
 	end
 
 	//sw
@@ -237,37 +237,20 @@ module lw_sw #(
 	                         (inst.op[2]==0 || sw_commit || sw_count < N_SW_ENTRY);
 	assign sw_empty = sw_count==0;
 	logic[31:0] data_mem_out;
+	data_mem data_mem(
+		.addra(parallel ? sw_e[0].addr : sw_broadcast_addr),
+		.addrb(lw_e_next[0].addr),
+		.clka(clk),
+		.clkb(clk),
+		.dina(parallel ? sw_e[0].sw_data.data : sw_broadcast_data),
+		.doutb(data_mem_out),
+		.wea(sw_commit || sw_broadcast)
+	);
 	generate
 		if (PARENT) begin
-			data_mem_parent data_mem_parent(
-				.clk,
-				.addra(sw_e[0].addr),
-				.addrb(lw_e[0].addr),  //分散RAMなのでアドレスは非同期で良い
-				.dina(sw_e[0].sw_data.data),
-				.doutb(data_mem_out),
-				.wea(sw_commit)
-			);
 			assign sw_broadcast_out      = !parallel && sw_commit;
 			assign sw_broadcast_addr_out = sw_e[0].addr;
 			assign sw_broadcast_data_out = sw_e[0].sw_data.data;
-		end else begin
-			logic                     sw_broadcasted = 0;
-			logic[DATA_MEM_WIDTH-1:0] sw_broadcasted_addr;
-			logic[31:0]               sw_broadcasted_data;
-			always_ff @(posedge clk) begin
-				sw_broadcasted      <= sw_broadcast;
-				sw_broadcasted_addr <= sw_broadcast_addr;
-				sw_broadcasted_data <= sw_broadcast_data;
-			end
-			data_mem data_mem(
-				.addra(sw_broadcasted ? sw_broadcasted_addr : sw_e[0].addr),
-				.addrb(lw_e_next[0].addr),
-				.clka(clk),
-				.clkb(clk),
-				.dina(sw_broadcasted ? sw_broadcasted_data : sw_e[0].sw_data.data),
-				.doutb(data_mem_out),
-				.wea(sw_commit || sw_broadcasted)
-			);
 		end
 	endgenerate
 endmodule
