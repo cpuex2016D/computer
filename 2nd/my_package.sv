@@ -17,12 +17,12 @@ package my_package;
 	parameter N_CORE = 6;  //register_file, topのみparameterizeされていない
 
 	//初期値設定
-	parameter PC_INIT = 6304;  //プログラム毎に変更
+	parameter PC_INIT = 8186;  //プログラム毎に変更
 	parameter REG_SP = 30;
 	parameter REG_HP = 31;
-	parameter DATA_MEM_DEPTH = 108269;  //プログラム毎に変更
+	parameter DATA_MEM_DEPTH = 108379;  //プログラム毎に変更
 	parameter REG_SP_INIT = DATA_MEM_DEPTH - 1;
-	parameter REG_HP_INIT = 801;  //プログラム毎に変更
+	parameter REG_HP_INIT = 893;  //プログラム毎に変更
 
 	typedef struct {  //packedでないとfunctionの引数にできない? -> packageの中に入れたらエラーが出なくなった
 		logic valid;
